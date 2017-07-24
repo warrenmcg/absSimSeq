@@ -1,0 +1,12 @@
+Package: absSeqSim
+Title: RNA-Seq Simulation with Absolute Counts
+Version: 0.0.0.9000
+Authors@R: person("Warren", "McGee", email = "warren.a.mcg@gmail.com", role = c("aut", "cre"))
+Description: This package extends the polyester
+package by simulating an RNA-Seq using absolute RNA counts before
+converting the result into relative proportions (in TPMs and expected
+fragments) that are then used as input for polyester.
+Depends: R (>= 3.4.1)
+License: file LICENSE
+Encoding: UTF-8
+LazyData: true
