@@ -7,6 +7,14 @@ package by simulating an RNA-Seq using absolute RNA counts before
 converting the result into relative proportions (in TPMs and expected
 fragments) that are then used as input for polyester.
 Depends: R (>= 3.4.1)
+Imports:
+   biomaRt,
+   Biostrings,
+   DESeq2,
+   polyester,
+   parallel,
+   sleuth,
+   sleuth.comp
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
