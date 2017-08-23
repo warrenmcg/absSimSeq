@@ -1,7 +1,8 @@
 # actual function to compare simulation results to the ground truth
 sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                          group_ids = NULL, final_results = NULL,
-                         prefixes = NULL) {
+                         prefixes = NULL, test = "wt") {
+  stopifnot(test %in% c("wt", "lrt"))
   message("comparing run #", index)
   if (is.null(prefixes)) {
     out_dir <- sleuth_dir
@@ -23,7 +24,12 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
   
   message("loading ", trans_file)
   load(trans_file)
-  old_results <- sleuth::sleuth_results(sleuth.obj, "conditionexperiment")
+  if (test == "wt") {
+    old_results <- sleuth::sleuth_results(sleuth.obj, "conditionexperiment")
+  } else {
+    old_results <- sleuth::sleuth_results(sleuth.obj, "reduced:full",
+                                          test_type = "lrt")
+  }
   if (gene_mode) {
     old_counts <- sleuth:::spread_abundance_by(sleuth.obj$obs_norm,
                                                "scaled_reads_per_base")
@@ -42,7 +48,12 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                        by.x = "target_id", by.y = "row.names", all = T)
   message("loading ", alr_file)
   load(alr_file)
-  alr_results <- sleuth::sleuth_results(sleuth.obj, "conditionexperiment")
+  if (test == "wt") {
+    alr_results <- sleuth::sleuth_results(sleuth.obj, "conditionexperiment")
+  } else {
+    alr_results <- sleuth::sleuth_results(sleuth.obj, "reduced:full",
+                                          test_type = "lrt")
+  }
   alr_tpms <- sleuth.obj$bs_summary$obs_tpm
   rm(sleuth.obj)
   alr_ctr_mean <- apply(alr_tpms[, which(group_ids==1)],
@@ -70,9 +81,13 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                                  "ctr_tpms", "exp_tpms",
                                  "ctr_reads", "exp_reads")
   }
-  #rownames(main_result) <- substr(rownames(main_result), 1, 15)
-  cols2include <- c("target_id", "gene_symbol", "pval", "qval", "b", "se_b",
-                    "ctr_mean", "exp_mean")
+  if (test == "wt") {
+    cols2include <- c("target_id", "gene_symbol", "pval", "qval", "b", "se_b",
+                      "ctr_mean", "exp_mean")
+  } else {
+    cols2include <- c("target_id", "gene_symbol", "pval", "qval", "test_stat", "rss",
+                      "ctr_mean", "exp_mean")
+  }
   old_comparison <- merge(old_results[, cols2include], main_result,
                           by.x = "target_id", by.y = "row.names",
                           all = T)
@@ -82,17 +97,29 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
       is.na(old_comparison$qval) &
         old_comparison$ctr_copy_numbers == 0), ]
   }
-  old_comparison <- old_comparison[order(old_comparison$qval,
-                                         old_comparison$pval,
-                                         old_comparison$b), ]
+  if (test == "wt") {
+    old_comparison <- old_comparison[order(old_comparison$qval,
+                                           old_comparison$pval,
+                                           -old_comparison$b), ]
+  } else {
+    old_comparison <- old_comparison[order(old_comparison$qval,
+                                           old_comparison$pval,
+                                           old_comparison$rss), ]
+  }
   old_filtered <- which(!is.na(old_comparison$pval))
   old_comparison$quartile <- cut(old_comparison$ctr_copy_numbers, 
                                  summary(old_comparison$ctr_copy_numbers)[-4])
-  old_comparison$de_status <- ifelse(old_comparison$abs_fold_change == 1,
-                                     0, ifelse(
-                                       old_comparison$abs_fold_change >= 1,
-                                       1, -1))
-  old_direction <- ifelse(old_comparison$b > 0, 1, -1)
+  if (test == "wt") {
+    old_comparison$de_status <- ifelse(old_comparison$abs_fold_change == 1,
+                                       0, ifelse(
+                                         old_comparison$abs_fold_change >= 1,
+                                         1, -1))
+    old_direction <- ifelse(old_comparison$b > 0, 1, -1)
+  } else {
+    old_comparison$de_status <- ifelse(old_comparison$abs_fold_change == 1,
+                                       0, 1)
+    old_direction <- rep(1, length(old_comparison$des_status))
+  }
   old_decision <- ifelse(old_comparison$de_status[old_filtered] == 0,
                          0, ifelse(
                            old_comparison$de_status[old_filtered] == 
@@ -122,17 +149,29 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
   # targets with zero true copy numbers but had estimated expression are
   # considered false positives (alr_diff == 0)
   alr_comparison$alr_diff[is.na(alr_comparison$alr_diff)] <- 0
-  alr_comparison <- alr_comparison[order(alr_comparison$qval,
-                                         alr_comparison$pval,
-                                         alr_comparison$b), ]
+  if (test == "wt") {
+    alr_comparison <- alr_comparison[order(alr_comparison$qval,
+                                           alr_comparison$pval,
+                                           -alr_comparison$b), ]
+  } else {
+    alr_comparison <- alr_comparison[order(alr_comparison$qval,
+                                           alr_comparison$pval,
+                                           alr_comparison$rss), ]
+  }
   alr_filtered <- which(!is.na(alr_comparison$pval))
   alr_comparison$quartile <- cut(alr_comparison$ctr_copy_numbers, 
                                  summary(alr_comparison$ctr_copy_numbers)[-4])
-  alr_comparison$de_status <- ifelse(abs(alr_comparison$alr_diff) < 1e-5,
-                                     0, ifelse(
-                                       alr_comparison$alr_diff > 0,
-                                       1, -1))
-  alr_direction <- ifelse(alr_comparison$b > 0, 1, -1)
+  if (test == "wt") {
+    alr_comparison$de_status <- ifelse(abs(alr_comparison$alr_diff) < 1e-5,
+                                       0, ifelse(
+                                         alr_comparison$alr_diff > 0,
+                                         1, -1))
+    alr_direction <- ifelse(alr_comparison$b > 0, 1, -1)
+  } else {
+    alr_comparison$de_status <- ifelse(abs(alr_comparison$alr_diff) < 1e-5,
+                                       0, 1)
+    alr_direction <- rep(1, length(alr_comparison$de_status))
+  }
   alr_decision <- ifelse(alr_comparison$de_status[alr_filtered] == 0,
                          0, ifelse(
                            alr_comparison$de_status[alr_filtered] == 
@@ -214,20 +253,21 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
   list(sleuth = old_comparison, alr = alr_comparison)
 }
 
-compare_sim_to_truth <- function(final_results, sleuth_dir = ".",
+compare_sim_to_truth <- function(final_results, in_dir = ".",
                                  de_probs, dir_probs,
                                  num_reps = c(10, 10), prefixes = NULL,
-                                 gene_mode = FALSE) {
+                                 gene_mode = FALSE, test = "wt") {
   group_ids <- c(rep(1, num_reps[1]), rep(2, num_reps[2]))
   if (is.null(prefixes)) {
     sim2truth <- lapply(seq_along(final_results$results), sim_to_truth,
-                        sleuth_dir = sleuth_dir, gene_mode = gene_mode,
-                        group_ids = group_ids, final_results = final_results)
+                        sleuth_dir = in_dir, gene_mode = gene_mode,
+                        group_ids = group_ids, final_results = final_results,
+                        test = test)
   } else {
     sim2truth <- lapply(seq_along(final_results$results), function(x) {
-      sim_to_truth(index = x, sleuth_dir = sleuth_dir, gene_mode = gene_mode,
+      sim_to_truth(index = x, sleuth_dir = in_dir, gene_mode = gene_mode,
                    group_ids = group_ids, final_results = final_results,
-                   prefixes = prefixes[[x]])
+                   prefixes = prefixes[[x]], test = test)
     })
   }
   sim2truth
