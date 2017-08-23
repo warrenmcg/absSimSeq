@@ -4,8 +4,9 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                          prefixes = NULL) {
   message("comparing run #", index)
   if (is.null(prefixes)) {
-    out_dir <- file.path(sleuth_dir, paste0("sleuth_out_run", index))
-    prefix <- file.path(out_dir, paste0("run", index))
+    out_dir <- sleuth_dir
+    in_dir <- file.path(sleuth_dir, paste0("sleuth_out_run", index))
+    prefix <- file.path(in_dir, paste0("run", index))
     if (gene_mode) {
       trans_file <- paste0(prefix, "Gene.RData")
       alr_file <- paste0(prefix, "_alrGene.RData")
@@ -16,7 +17,8 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
   } else {
     trans_file <- file.path(sleuth_dir, paste0(prefixes[1], ".RData"))
     alr_file <- file.path(sleuth_dir, paste0(prefixes[2], ".RData"))
-    prefix <- basename(prefixes[2])
+    prefix <- prefixes[3]
+    out_dir <- dirname(prefixes[3])
   }
   
   message("loading ", trans_file)
@@ -176,7 +178,7 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
   }
   
   prefix <- basename(prefix)
-  pdf(file.path(sleuth_dir, paste0(prefix, suffix)))
+  pdf(file.path(out_dir, paste0(prefix, suffix)))
   print(g)
   invisible(dev.off())
   
@@ -205,7 +207,7 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
   } else {
     suffix <- "_sensVsFDR.pdf"
   }
-  pdf(file.path(sleuth_dir, paste0(prefix, suffix)))
+  pdf(file.path(out_dir, paste0(prefix, suffix)))
   print(g2)
   invisible(dev.off())
   
