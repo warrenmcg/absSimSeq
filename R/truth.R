@@ -1,5 +1,5 @@
 # actual function to compare simulation results to the ground truth
-sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
+sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                          group_ids = NULL, final_results = NULL,
                          prefixes = NULL, test = "wt") {
   stopifnot(test %in% c("wt", "lrt"))
@@ -253,21 +253,284 @@ sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
   list(sleuth = old_comparison, alr = alr_comparison)
 }
 
+other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
+                               group_ids = NULL, final_results = NULL,
+                               prefixes = NULL, tool = "DESeq2") {
+  message("comparing run #", index)
+  s_prefix <- file.path(in_dir, prefixes[1])
+  k_prefix <- file.path(in_dir, prefixes[2])
+  prefix <- prefixes[3]
+  out_dir <- dirname(prefix)
+
+  if (tool == "ALDEx2we") {
+    type <- "alr"
+    s_file <- paste(s_prefix, "aldex2AllResults.txt", sep = "_")
+    k_file <- paste(k_prefix, "aldex2AllResults.txt", sep = "_")
+    cols2include <- c("target_id", "gene_symbol", "rab.win.control",
+                      "rab.win.experiment", "effect", "we.ep", "we.eBH")
+  } else if (tool == "ALDEx2overlap") {
+    type <- "alr"
+    s_file <- paste(s_prefix, "aldex2AllResults.txt", sep = "_")
+    k_file <- paste(k_prefix, "aldex2AllResults.txt", sep = "_")
+    cols2include <- c("target_id", "gene_symbol", "rab.win.control",
+                      "rab.win.experiment", "we.ep", "we.eBH", "effect", "overlap")
+  } else if (tool == "ALDEx2wi") {
+    type <- "alr"
+    s_file <- paste(s_prefix, "aldex2AllResults.txt", sep = "_")
+    k_file <- paste(k_prefix, "aldex2AllResults.txt", sep = "_")
+    cols2include <- c("target_id", "gene_symbol", "rab.win.control",
+                      "rab.win.experiment", "effect", "wi.ep", "wi.eBH")
+  }
+
+  message('loading salmon results')
+  s_results <- read.table(s_file, sep = "\t", header = T, quote = "")
+  message('loading kallisto results')
+  k_results <- read.table(k_file, sep = "\t", header = T, quote = "")
+
+  message('retrieving the truth')
+  main_result <- final_results$results[[index]]
+  main_result <- as.data.frame(main_result)
+  if (gene_mode) {
+    main_result <- main_result[!is.na(main_result[, 1]), ]
+    row.names(main_result) <- main_result[, 1]
+    main_result$ensembl_gene_id <- NULL
+    names(main_result)[1:2] <- c("ctr_copy_numbers", "exp_copy_numbers")
+  } else {
+    names(main_result)[4:9] <- c("ctr_copy_numbers", "exp_copy_numbers",
+                                 "ctr_tpms", "exp_tpms",
+                                 "ctr_reads", "exp_reads")
+  }
+  main_result$target_id <- rownames(main_result)
+
+  if (type == "alr") {
+    alr_result <- final_results$alr_data[[index]]
+    alr_result <- as.data.frame(alr_result)
+    names(alr_result)[1:2] <- c("alr_ctr_ratio", "alr_exp_ratio")
+    alr_result$target_id <- rownames(alr_result)
+    main_result <- merge(data.table::as.data.table(alr_result),
+                         data.table::as.data.table(main_result),
+                         by = "target_id", all = T)
+    main_result <- as.data.frame(main_result)
+  }
+
+  message('merging results with the truth')
+  s_comparison <- merge(data.table::as.data.table(s_results[, cols2include]),
+                        data.table::as.data.table(main_result),
+                        by = "target_id", all = T)
+  s_comparison <- as.data.frame(s_comparison)
+  s_comparison$quartile <- cut(s_comparison$ctr_copy_numbers,
+                               unique(summary(s_comparison$ctr_copy_numbers)[-4]))
+  k_comparison <- merge(data.table::as.data.table(k_results[, cols2include]),
+                        data.table::as.data.table(main_result),
+                        by = "target_id", all = T)
+  k_comparison <- as.data.frame(k_comparison)
+  k_comparison$quartile <- cut(k_comparison$ctr_copy_numbers,
+                               unique(summary(
+                                 k_comparison$ctr_copy_numbers)[-4]))
+
+  ## order the comparisons by p-value
+  if (tool == "ALDEx2we") {
+    s_comparison <- s_comparison[order(s_comparison$we.eBH,
+                                       s_comparison$we.ep,
+                                       -s_comparison$effect), ]
+    k_comparison <- k_comparison[order(k_comparison$we.eBH,
+                                       k_comparison$we.ep,
+                                       -k_comparison$effect), ]
+    if(any(is.na(s_comparison$we.eBH) &
+           s_comparison$ctr_copy_numbers == 0)) {
+      s_comparison <- s_comparison[-which(
+        is.na(s_comparison$we.eBH) &
+          s_comparison$ctr_copy_numbers == 0), ]
+    }
+    if(any(is.na(k_comparison$we.eBH) &
+           k_comparison$ctr_copy_numbers == 0)) {
+      k_comparison <- k_comparison[-which(
+        is.na(k_comparison$we.eBH) &
+          k_comparison$ctr_copy_numbers == 0), ]
+    }
+    s_filtered <- which(!is.na(s_comparison$we.eBH))
+    k_filtered <- which(!is.na(k_comparison$we.eBH))
+  } else if (tool == "ALDEx2overlap") {
+    s_comparison <- s_comparison[order(s_comparison$overlap,
+                                       s_comparison$we.ep,
+                                       -s_comparison$effect), ]
+    k_comparison <- k_comparison[order(k_comparison$overlap,
+                                       k_comparison$we.ep,
+                                       -k_comparison$effect), ]
+    if(any(is.na(s_comparison$overlap) &
+           s_comparison$ctr_copy_numbers == 0)) {
+      s_comparison <- s_comparison[-which(
+        is.na(s_comparison$overlap) &
+          s_comparison$ctr_copy_numbers == 0), ]
+    }
+    if(any(is.na(k_comparison$overlap) &
+           k_comparison$ctr_copy_numbers == 0)) {
+      k_comparison <- k_comparison[-which(
+        is.na(k_comparison$overlap) &
+          k_comparison$ctr_copy_numbers == 0), ]
+    }
+    s_filtered <- which(!is.na(s_comparison$overlap))
+    k_filtered <- which(!is.na(k_comparison$overlap))
+  } else if (tool == "ALDEx2wi") {
+    s_comparison <- s_comparison[order(s_comparison$wi.eBH,
+                                       s_comparison$wi.ep,
+                                       -s_comparison$effect), ]
+    k_comparison <- k_comparison[order(k_comparison$wi.eBH,
+                                       k_comparison$wi.ep,
+                                       -k_comparison$effect), ]
+    if(any(is.na(s_comparison$wi.eBH) &
+           s_comparison$ctr_copy_numbers == 0)) {
+      s_comparison <- s_comparison[-which(
+        is.na(s_comparison$wi.eBH) &
+          s_comparison$ctr_copy_numbers == 0), ]
+    }
+    if(any(is.na(k_comparison$wi.eBH) &
+           k_comparison$ctr_copy_numbers == 0)) {
+      k_comparison <- k_comparison[-which(
+        is.na(k_comparison$wi.eBH) &
+          k_comparison$ctr_copy_numbers == 0), ]
+    }
+    s_filtered <- which(!is.na(s_comparison$wi.eBH))
+    k_filtered <- which(!is.na(k_comparison$wi.eBH))
+  }
+
+  if (type == "alr") {
+    message('comparing salmon results to truth')
+    s_comparison$alr_diff[is.na(s_comparison$alr_diff)] <- 0
+    s_comparison$de_status <- ifelse(abs(s_comparison$alr_diff) < 1e-5,
+                                     0, ifelse(
+                                       s_comparison$alr_diff >= 1,
+                                       1, -1))
+    s_direction <- ifelse(s_comparison$effect > 0, 1, -1)
+    s_decision <- ifelse(s_comparison$de_status[s_filtered] == 0,
+                                    0, ifelse(
+                                      s_comparison$de_status[s_filtered] ==
+                                        s_direction[s_filtered],
+                                      1, 0))
+    s_comparison$tpr <- s_comparison$fpr <- s_comparison$fdr <- NA
+    s_comparison$tpr[s_filtered] <- cumsum(s_decision) /
+      sum(s_decision, na.rm=T)
+    s_comparison$fpr[s_filtered] <- cumsum(-1*(s_decision-1)) /
+      (-1*(sum(s_decision-1, na.rm=T)))
+    s_comparison$fdr[s_filtered] <- cumsum(-1*(s_decision-1)) /
+      (seq(length(s_decision)))
+
+    message('comparing kallisto results to truth')
+    k_comparison$alr_diff[is.na(k_comparison$alr_diff)] <- 0
+    k_comparison$de_status <- ifelse(abs(k_comparison$alr_diff) < 1e-5,
+                                     0, ifelse(
+                                       k_comparison$alr_diff >= 1,
+                                       1, -1))
+    k_direction <- ifelse(k_comparison$effect > 0, 1, -1)
+    k_decision <- ifelse(k_comparison$de_status == 0,
+                         0, ifelse(k_comparison$de_status[k_filtered] ==
+                                     k_direction[k_filtered],
+                                   1, 0))
+    k_comparison$tpr <- k_comparison$fpr <- k_comparison$fdr <- NA
+    k_comparison$tpr[k_filtered] <- cumsum(k_decision) /
+      sum(k_decision, na.rm=T)
+    k_comparison$fpr[k_filtered] <- cumsum(-1*(k_decision-1)) /
+      (-1*(sum(k_decision-1, na.rm=T)))
+    k_comparison$fdr[k_filtered] <- cumsum(-1*(k_decision-1)) /
+      (seq(length(k_decision)))
+  }
+
+  message('plotting the results')
+  plot_data <- data.frame(method = "salmon", TPR = s_comparison$tpr,
+                          FPR = s_comparison$fpr, FDR = s_comparison$fdr)
+  plot_data2 <- data.frame(method = "kallisto", TPR = k_comparison$tpr,
+                           FPR = k_comparison$fpr, FDR = k_comparison$fdr)
+  plot_data <- rbind(plot_data, plot_data2)
+  plot_data <- plot_data[which(!is.na(plot_data$TPR)), ]
+  g <- ggplot2::ggplot(plot_data, ggplot2::aes(x = FPR, y = TPR,
+                                               color = method)) +
+    ggplot2::geom_line() +
+    ggplot2::geom_abline(intercept = 0, slope = 1, linetype="dashed",
+                         alpha = 0.3) +
+    ggplot2::theme(axis.ticks.length = ggplot2::unit(0.5,"cm"),
+                   axis.text.x = ggplot2::element_text(angle = 90,
+                                                       vjust = 0.5,
+                                                       size = 16),
+                   axis.text.y = ggplot2::element_text(size = 16),
+                   axis.title.x = ggplot2::element_text(size = 20,
+                                                        face = "bold"),
+                   axis.title.y = ggplot2::element_text(size = 20,
+                                                        face = "bold"),
+                   strip.text.x = ggplot2::element_text(size = 16,
+                                                        face = "bold"),
+                   legend.text = ggplot2::element_text(size = 16),
+                   legend.title = ggplot2::element_text(size = 20))
+  if (gene_mode) {
+    suffix <- "_geneRoc.pdf"
+  } else {
+    suffix <- "_roc.pdf"
+  }
+
+  prefix <- basename(prefix)
+  prefix <- paste(prefix, tool, sep = "_")
+  pdf(file.path(out_dir, paste0(prefix, suffix)))
+  print(g)
+  invisible(dev.off())
+
+  g2 <- ggplot2::ggplot(plot_data, ggplot2::aes(x = FDR, y = TPR,
+                                                color = method)) +
+    ggplot2::geom_path(size = 0.8, alpha = 0.8) +
+    ggplot2::geom_vline(xintercept = 0.05, linetype="dashed",
+                        alpha = 0.3) +
+    ggplot2::geom_vline(xintercept = 0.1, linetype="dashed",
+                        alpha = 0.3) +
+    ggplot2::geom_vline(xintercept = 0.1, linetype="dashed",
+                        alpha = 0.3) +
+    ggplot2::theme(axis.ticks.length = ggplot2::unit(0.5,"cm"),
+                   axis.text.x = ggplot2::element_text(angle = 90,
+                                                       vjust = 0.5,
+                                                       size = 16),
+                   axis.text.y = ggplot2::element_text(size = 16),
+                   axis.title.x = ggplot2::element_text(size = 20,
+                                                        face = "bold"),
+                   axis.title.y = ggplot2::element_text(size = 20,
+                                                        face = "bold"),
+                   strip.text.x = ggplot2::element_text(size = 16,
+                                                        face = "bold"),
+                   legend.text = ggplot2::element_text(size = 16),
+                   legend.title = ggplot2::element_text(size = 20))
+  if (gene_mode) {
+    suffix <- "_geneSensVsFDR.pdf"
+  } else {
+    suffix <- "_sensVsFDR.pdf"
+  }
+  pdf(file.path(out_dir, paste0(prefix, suffix)))
+  print(g2)
+  invisible(dev.off())
+
+  list(salmon = s_comparison, kallisto = k_comparison)
+}
+
 compare_sim_to_truth <- function(final_results, in_dir = ".",
                                  de_probs, dir_probs,
                                  num_reps = c(10, 10), prefixes = NULL,
-                                 gene_mode = FALSE, test = "wt") {
+                                 gene_mode = FALSE, test = "wt",
+                                 tool = "sleuth") {
   group_ids <- c(rep(1, num_reps[1]), rep(2, num_reps[2]))
-  if (is.null(prefixes)) {
-    sim2truth <- lapply(seq_along(final_results$results), sim_to_truth,
-                        sleuth_dir = in_dir, gene_mode = gene_mode,
-                        group_ids = group_ids, final_results = final_results,
-                        test = test)
+  if (tool == "sleuth") {
+    if (is.null(prefixes)) {
+      sim2truth <- lapply(seq_along(final_results$results), sleuth_sim_to_truth,
+                          sleuth_dir = in_dir, gene_mode = gene_mode,
+                          group_ids = group_ids, final_results = final_results,
+                          test = test)
+    } else {
+      sim2truth <- lapply(seq_along(final_results$results), function(x) {
+        sleuth_sim_to_truth(index = x, sleuth_dir = in_dir,
+                            gene_mode = gene_mode, group_ids = group_ids,
+                            final_results = final_results,
+                            prefixes = prefixes[[x]], test = test)
+      })
+    }
   } else {
     sim2truth <- lapply(seq_along(final_results$results), function(x) {
-      sim_to_truth(index = x, sleuth_dir = in_dir, gene_mode = gene_mode,
+      other_sim_to_truth(index = x, sleuth_dir = in_dir, gene_mode = gene_mode,
                    group_ids = group_ids, final_results = final_results,
-                   prefixes = prefixes[[x]], test = test)
+                   prefixes = prefixes[[x]], test = test, tool = tool)
     })
   }
   sim2truth
