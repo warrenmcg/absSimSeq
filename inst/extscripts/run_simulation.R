@@ -21,3 +21,8 @@ summaries <- summarize_abs_sim_runs(final_results, num_runs, de_probs, dir_probs
 save(final_results, summaries, sample_index, de_probs, dir_probs, fasta_file,
      sleuth_file, outdir, gc_bias, num_runs, num_reps, denom,
      file = file.path(outdir, "polyester_groundTruth.RData"))
+comparisons <- compare_sim_to_truth(final_results, sleuth_dir = outdir,
+                                    de_probs = de_probs, dir_probs = dir_probs,
+                                    num_reps = num_reps)
+save(comparisons, file = file.path(outdir, "polyester_comparisons.RData"))
+
