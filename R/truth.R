@@ -286,6 +286,12 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
     k_file <- paste(k_prefix, "DESeqAllResults.txt", sep = "_")
     cols2include <- c("target_id", "gene_symbol", "baseMean",
                       "log2FoldChange", "pvalue", "padj")
+  } else if (tool == "limma") {
+    type <- "main"
+    s_file <- paste(s_prefix, "limmaAllResults.txt", sep = "_")
+    k_file <- paste(k_prefix, "limmaAllResults.txt", sep = "_")
+    cols2include <- c("target_id", "gene_symbol", "AveExpr",
+                      "logFC", "P.Value", "adj.P.Val")
   }
 
   message('loading salmon results')
@@ -420,6 +426,28 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
     s_filtered <- which(!is.na(s_comparison$padj))
     k_filtered <- which(!is.na(k_comparison$padj))
     dir_col <- "log2FoldChange"
+  } else if (tool == "limma") {
+    s_comparison <- s_comparison[order(s_comparison$adj.P.Val,
+                                       s_comparison$P.Value,
+                                       -s_comparison$logFC), ]
+    k_comparison <- k_comparison[order(k_comparison$adj.P.Val,
+                                       k_comparison$P.Value,
+                                       -k_comparison$logFC), ]
+    if(any(is.na(s_comparison$adj.P.Val) &
+           s_comparison$ctr_copy_numbers == 0)) {
+      s_comparison <- s_comparison[-which(
+        is.na(s_comparison$adj.P.Val) &
+          s_comparison$ctr_copy_numbers == 0), ]
+    }
+    if(any(is.na(k_comparison$adj.P.Val) &
+           k_comparison$ctr_copy_numbers == 0)) {
+      k_comparison <- k_comparison[-which(
+        is.na(k_comparison$adj.P.Val) &
+          k_comparison$ctr_copy_numbers == 0), ]
+    }
+    s_filtered <- which(!is.na(s_comparison$adj.P.Val))
+    k_filtered <- which(!is.na(k_comparison$adj.P.Val))
+    dir_col <- "logFC"
   }
 
   if (type == "alr") {
