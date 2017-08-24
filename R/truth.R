@@ -280,6 +280,12 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
     k_file <- paste(k_prefix, "aldex2AllResults.txt", sep = "_")
     cols2include <- c("target_id", "gene_symbol", "rab.win.control",
                       "rab.win.experiment", "effect", "wi.ep", "wi.eBH")
+  } else if (tool == "DESeq2") {
+    type <- "main"
+    s_file <- paste(s_prefix, "DESeqAllResults.txt", sep = "_")
+    k_file <- paste(k_prefix, "DESeqAllResults.txt", sep = "_")
+    cols2include <- c("target_id", "gene_symbol", "baseMean",
+                      "log2FoldChange", "pvalue", "padj")
   }
 
   message('loading salmon results')
@@ -392,6 +398,66 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
     }
     s_filtered <- which(!is.na(s_comparison$wi.eBH))
     k_filtered <- which(!is.na(k_comparison$wi.eBH))
+  } else if (tool == "DESeq2") {
+    message('comparing salmon results to truth')
+    s_comparison <- s_comparison[order(s_comparison$padj,
+                                       s_comparison$pvalue,
+                                       -s_comparison$log2FoldChange), ]
+    if(any(is.na(s_comparison$padj) &
+           s_comparison$ctr_copy_numbers == 0)) {
+      s_comparison <- s_comparison[-which(
+        is.na(s_comparison$padj) &
+          s_comparison$ctr_copy_numbers == 0), ]
+    }
+    s_filtered <- which(!is.na(s_comparison$padj))
+    s_comparison$de_status <- ifelse(s_comparison$abs_fold_change == 1,
+                                     0, ifelse(
+                                       s_comparison$abs_fold_change >= 1,
+                                       1, -1))
+    s_direction <- ifelse(s_comparison$log2FoldChange > 0, 1, -1)
+    s_decision <- ifelse(s_comparison$de_status[s_filtered] == 0,
+                         0, ifelse(
+                           s_comparison$de_status[s_filtered] ==
+                             s_direction[s_filtered],
+                           1, 0))
+    s_comparison$tpr <- s_comparison$fpr <- s_comparison$fdr <- NA
+    s_comparison$tpr[s_filtered] <- cumsum(s_decision) /
+      sum(s_decision, na.rm=T)
+    s_comparison$fpr[s_filtered] <- cumsum(
+      -1*(s_decision-1)) /
+      (-1*(sum(s_decision-1, na.rm=T)))
+    s_comparison$fdr[s_filtered] <- cumsum(-1*(s_decision-1)) /
+      (seq(length(s_decision)))
+    
+    message('comparing kallisto results to truth')
+    k_comparison <- k_comparison[order(k_comparison$padj,
+                                       k_comparison$pvalue,
+                                       -k_comparison$log2FoldChange), ]
+    if(any(is.na(k_comparison$padj) &
+           k_comparison$ctr_copy_numbers == 0)) {
+      k_comparison <- k_comparison[-which(
+        is.na(k_comparison$padj) &
+          k_comparison$ctr_copy_numbers == 0), ]
+    }
+    #    k_filtered <- which(!is.na(k_comparison$padj))
+    k_comparison$de_status <- ifelse(k_comparison$abs_fold_change == 1,
+                                     0, ifelse(
+                                       k_comparison$abs_fold_change >= 1,
+                                       1, -1))
+    k_direction <- ifelse(k_comparison$log2FoldChange > 0, 1, -1)
+    k_decision <- ifelse(k_comparison$de_status[k_filtered] == 0,
+                         0, ifelse(
+                           k_comparison$de_status[k_filtered] ==
+                             k_comparison$direction[k_filtered],
+                           1, 0))
+    k_comparison$tpr <- k_comparison$fpr <- k_comparison$fdr <- NA
+    k_comparison$tpr[k_filtered] <- cumsum(k_decision) /
+      sum(k_decision, na.rm=T)
+    k_comparison$fpr[k_filtered] <- cumsum(
+      -1*(k_decision-1)) /
+      (-1*(sum(k_decision-1, na.rm=T)))
+    k_comparison$fdr[k_filtered] <- cumsum(-1*(k_decision-1)) /
+      (seq(length(k_decision)))
   }
 
   if (type == "alr") {
