@@ -106,7 +106,6 @@ sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                                            old_comparison$pval,
                                            old_comparison$rss), ]
   }
-  old_filtered <- which(!is.na(old_comparison$pval))
   old_comparison$quartile <- cut(old_comparison$ctr_copy_numbers, 
                                  summary(old_comparison$ctr_copy_numbers)[-4])
   if (test == "wt") {
@@ -114,25 +113,27 @@ sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                                        0, ifelse(
                                          old_comparison$abs_fold_change >= 1,
                                          1, -1))
-    old_direction <- ifelse(old_comparison$b > 0, 1, -1)
+    old_comparison$direction <- ifelse(is.na(old_comparison$qval), 0,
+                            ifelse(old_comparison$b > 0, 1, -1))
   } else {
     old_comparison$de_status <- ifelse(old_comparison$abs_fold_change == 1,
                                        0, 1)
-    old_direction <- rep(1, length(old_comparison$des_status))
+    old_comparison$direction <- ifelse(is.na(old_comparison$qval), 0, 1)
   }
-  old_decision <- ifelse(old_comparison$de_status[old_filtered] == 0,
-                         0, ifelse(
-                           old_comparison$de_status[old_filtered] == 
-                             old_direction[old_filtered],
-                           1, 0))
+  old_comparison$decision <- ifelse(old_comparison$ctr_copy_numbers == 0 |
+                                      old_comparison$de_status == 0,
+                                    0, ifelse(old_comparison$direction != 0 &
+                                                old_comparison$de_status ==
+                                                old_comparison$direction,
+                                              1, 0))
   old_comparison$tpr <- old_comparison$fpr <- old_comparison$fdr <- NA
-  old_comparison$tpr[old_filtered] <- cumsum(old_decision) / 
-    sum(old_decision, na.rm=T)
-  old_comparison$fpr[old_filtered] <- cumsum(
-    -1*(old_decision-1)) /
-    (-1*(sum(old_decision-1, na.rm=T)))
-  old_comparison$fdr[old_filtered] <- cumsum(-1*(old_decision-1)) / 
-    (seq(length(old_decision)))
+  old_comparison$tpr <- cumsum(old_comparison$decision) / 
+    sum(old_comparison$decision, na.rm=T)
+  old_comparison$fpr <- cumsum(
+    -1*(old_comparison$decision-1)) /
+    (-1*(sum(old_comparison$decision-1, na.rm=T)))
+  old_comparison$fdr <- cumsum(-1*(old_comparison$decision-1)) / 
+    (seq(length(old_comparison$decision)))
   
   alr_comparison <- merge(alr_results[, cols2include], alr_result,
                           by.x = "target_id", by.y = "row.names",
@@ -158,7 +159,6 @@ sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                                            alr_comparison$pval,
                                            alr_comparison$rss), ]
   }
-  alr_filtered <- which(!is.na(alr_comparison$pval))
   alr_comparison$quartile <- cut(alr_comparison$ctr_copy_numbers, 
                                  summary(alr_comparison$ctr_copy_numbers)[-4])
   if (test == "wt") {
@@ -166,25 +166,26 @@ sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                                        0, ifelse(
                                          alr_comparison$alr_diff > 0,
                                          1, -1))
-    alr_direction <- ifelse(alr_comparison$b > 0, 1, -1)
+    alr_comparison$direction <- ifelse(is.na(alr_comparison$qval), 0,
+                            alr_comparison$b > 0, 1, -1))
   } else {
     alr_comparison$de_status <- ifelse(abs(alr_comparison$alr_diff) < 1e-5,
                                        0, 1)
-    alr_direction <- rep(1, length(alr_comparison$de_status))
+    alr_comparison$direction <- ifelse(is.na(alr_comparison$qval), 0, 1)
   }
-  alr_decision <- ifelse(alr_comparison$de_status[alr_filtered] == 0,
-                         0, ifelse(
-                           alr_comparison$de_status[alr_filtered] == 
-                             alr_direction[alr_filtered],
-                           1, 0))
+  alr_comparison$decision <- ifelse(alr_comparison$ctr_copy_numbers == 0 |
+                                      alr_comparison$de_status == 0,
+                                    0, ifelse(alr_comparison$direction != 0 &
+                                                alr_comparison$de_status ==
+                                                alr_comparison$direction,
+                                              1, 0))
   alr_comparison$tpr <- alr_comparison$fpr <- alr_comparison$fdr <- NA
-  alr_comparison$tpr[alr_filtered] <- cumsum(alr_decision) / 
-    sum(alr_decision, na.rm=T)
-  alr_comparison$fpr[alr_filtered] <- cumsum(
-    -1*(alr_decision-1)) /
-    (-1*(sum(alr_decision-1, na.rm=T)))
-  alr_comparison$fdr[alr_filtered] <- cumsum(-1*(alr_decision-1)) / 
-    (seq(length(alr_decision)))
+  alr_comparison$tpr <- cumsum(alr_comparison$decision) / 
+    sum(alr_comparison$decision, na.rm=T)
+  alr_comparison$fpr <- cumsum(-1*(alr_comparison$decision-1)) /
+    (-1*(sum(alr_comparison$decision-1, na.rm=T)))
+  alr_comparison$fdr <- cumsum(-1*(alr_comparison$decision-1)) / 
+    (seq(length(alr_comparison$decision)))
   
   plot_data <- data.frame(method = "alr", TPR = alr_comparison$tpr,
                           FPR = alr_comparison$fpr, FDR = alr_comparison$fdr)
@@ -360,8 +361,6 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
         is.na(k_comparison$we.eBH) &
           k_comparison$ctr_copy_numbers == 0), ]
     }
-    s_filtered <- which(!is.na(s_comparison$we.eBH))
-    k_filtered <- which(!is.na(k_comparison$we.eBH))
   } else if (tool == "ALDEx2overlap") {
     s_comparison <- s_comparison[order(s_comparison$overlap,
                                        s_comparison$we.ep,
@@ -381,8 +380,6 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
         is.na(k_comparison$overlap) &
           k_comparison$ctr_copy_numbers == 0), ]
     }
-    s_filtered <- which(!is.na(s_comparison$overlap))
-    k_filtered <- which(!is.na(k_comparison$overlap))
   } else if (tool == "ALDEx2wi") {
     s_comparison <- s_comparison[order(s_comparison$wi.eBH,
                                        s_comparison$wi.ep,
@@ -402,8 +399,6 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
         is.na(k_comparison$wi.eBH) &
           k_comparison$ctr_copy_numbers == 0), ]
     }
-    s_filtered <- which(!is.na(s_comparison$wi.eBH))
-    k_filtered <- which(!is.na(k_comparison$wi.eBH))
   } else if (tool == "DESeq2") {
     s_comparison <- s_comparison[order(s_comparison$padj,
                                        s_comparison$pvalue,
@@ -423,8 +418,6 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
         is.na(k_comparison$padj) &
           k_comparison$ctr_copy_numbers == 0), ]
     }
-    s_filtered <- which(!is.na(s_comparison$padj))
-    k_filtered <- which(!is.na(k_comparison$padj))
     dir_col <- "log2FoldChange"
   } else if (tool == "limma") {
     s_comparison <- s_comparison[order(s_comparison$adj.P.Val,
@@ -445,14 +438,12 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
         is.na(k_comparison$adj.P.Val) &
           k_comparison$ctr_copy_numbers == 0), ]
     }
-    s_filtered <- which(!is.na(s_comparison$adj.P.Val))
-    k_filtered <- which(!is.na(k_comparison$adj.P.Val))
     dir_col <- "logFC"
   }
 
   if (type == "alr") {
-    k_comparison$alr_diff[is.na(k_comparison$alr_diff)] <- 0
     s_comparison$alr_diff[is.na(s_comparison$alr_diff)] <- 0
+    k_comparison$alr_diff[is.na(k_comparison$alr_diff)] <- 0
     num_col <- "alr_diff"
     dir_col <- "effect"
   } else {
@@ -465,39 +456,42 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
                                    0, ifelse(
                                      s_comparison[, num_col] >= 1,
                                      1, -1))
-  s_direction <- ifelse(s_comparison[, dir_col] > 0, 1, -1)
-  s_decision <- ifelse(s_comparison$de_status[s_filtered] == 0,
-                       0, ifelse(
-                         s_comparison$de_status[s_filtered] ==
-                           s_direction[s_filtered],
-                         1, 0))
+  s_comparison$direction <- ifelse(is.na(s_comparison[, dir_col]), 0,
+                                   ifelse(s_comparison[, dir_col] > 0, 1, -1))
+  s_comparison$decision <- ifelse(s_comparison$ctr_copy_numbers == 0 |
+                                    s_comparison$de_status == 0,
+                                  0, ifelse(s_comparison$direction != 0 &
+                                              s_comparison$de_status ==
+                                              s_comparison$direction,
+                                            1, 0))
   s_comparison$tpr <- s_comparison$fpr <- s_comparison$fdr <- NA
-  s_comparison$tpr[s_filtered] <- cumsum(s_decision) /
-    sum(s_decision, na.rm=T)
-  s_comparison$fpr[s_filtered] <- cumsum(
-    -1*(s_decision-1)) /
-    (-1*(sum(s_decision-1, na.rm=T)))
-  s_comparison$fdr[s_filtered] <- cumsum(-1*(s_decision-1)) /
-    (seq(length(s_decision)))
+  s_comparison$tpr <- cumsum(s_comparison$decision) /
+    sum(s_comparison$decision, na.rm=T)
+  s_comparison$fpr <- cumsum(-1*(s_comparison$decision-1)) /
+    (-1*(sum(s_comparison$decision-1, na.rm=T)))
+  s_comparison$fdr <- cumsum(-1*(s_comparison$decision-1)) /
+    (seq(length(s_comparison$decision)))
 
   message('comparing kallisto results to truth')
   k_comparison$de_status <- ifelse(k_comparison[, num_col] == 1,
                                    0, ifelse(
                                      k_comparison[, num_col] >= 1,
                                      1, -1))
-  k_direction <- ifelse(k_comparison[, dir_col] > 0, 1, -1)
-  k_decision <- ifelse(k_comparison$de_status[k_filtered] == 0,
-                       0, ifelse(k_comparison$de_status[k_filtered] ==
-                                   k_direction[k_filtered],
-                                 1, 0))
+  k_comparison$direction <- ifelse(is.na(k_comparison[, dir_col]), 0,
+                                   ifelse(k_comparison[, dir_col] > 0, 1, -1))
+  k_comparison$decision <- ifelse(k_comparison$ctr_copy_numbers == 0 |
+                                    k_comparison$de_status == 0,
+                                  0, ifelse(k_comparison$direction != 0 &
+                                              k_comparison$de_status ==
+                                              k_comparison$direction,
+                                            1, 0))
   k_comparison$tpr <- k_comparison$fpr <- k_comparison$fdr <- NA
-  k_comparison$tpr <- cumsum(k_decision) /
-    sum(k_decision, na.rm=T)
-  k_comparison$fpr <- cumsum(
-    -1*(k_decision-1)) /
-    (-1*(sum(k_decision-1, na.rm=T)))
-  k_comparison$fdr <- cumsum(-1*(k_decision-1)) /
-    (seq(length(k_decision)))
+  k_comparison$tpr <- cumsum(k_comparison$decision) /
+    sum(k_comparison$decision, na.rm=T)
+  k_comparison$fpr <- cumsum(-1*(k_comparison$decision-1)) /
+    (-1*(sum(k_comparison$decision-1, na.rm=T)))
+  k_comparison$fdr <- cumsum(-1*(k_comparison$decision-1)) /
+    (seq(length(k_comparison$decision)))
 
   message('plotting the results')
   plot_data <- data.frame(method = "salmon", TPR = s_comparison$tpr,
