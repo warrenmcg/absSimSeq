@@ -41,6 +41,7 @@ generate_abs_changes <- function(tpms = NULL,
                                  de_prob = 0.1,
                                  dir_prob = 0.5,
                                  de_levels = c(1.25, 2, 4),
+                                 de_type = "discrete",
                                  seed = 1,
                                  num_reps = c(10, 10)) {
   set.seed(seed)
@@ -48,7 +49,13 @@ generate_abs_changes <- function(tpms = NULL,
   if(length(num_reps)!=2)
     stop("this currently only supports an experiment with two conditions")
   if (sum(tpms) != 10^6) tpms <- tpms/sum(tpms) * 10^6
-  
+
+  de_type <- match.arg(de_type, c("discrete", "normal"))
+  if (de_type == "discrete" & is.null(de_levels)) {
+    stop("if you are doing a discrete fold-change simulation, you must ",
+         "specify the levels of differential expression")
+  }
+
   # The conceptual shift from relative TPMs to absolute copy numbers
   ctr_copy_numbers <- tpms
   # garbage collection to keep memory footprint small
@@ -56,6 +63,13 @@ generate_abs_changes <- function(tpms = NULL,
   ## these are now treated as transcript copy numbers / cell
   num_trans <- length(ctr_copy_numbers)
   num_levels <- length(de_levels)
+
+  if (num_levels < 3 & de_type == "normal") {
+    stop("if you are using a truncated normal, you must specify ",
+         "at least three values for the 'de_levels' variable to set ",
+         "the basement, the mean, and the standard deviation of the ",
+         "distribution")
+  }
   
   ## de_decision is a bernoulli trial to determine whether each transcript is
   ## differentially expressed or not
@@ -72,11 +86,17 @@ generate_abs_changes <- function(tpms = NULL,
   fold_changes <- sapply(seq_along(dir_decisions), function(x) {
     dir_decision <- dir_decisions[x]
     if(is.na(dir_decision)) return(1)
-    index <- as.integer(cut(runif(1), seq(0, 1, 1/num_levels)))
-    level <- de_levels[index]
-    if(dir_decision==1) level else 1/level
+    if (de_type == "discrete") {
+      index <- as.integer(cut(runif(1), seq(0, 1, 1/num_levels)))
+      level <- de_levels[index]
+    } else {
+      level <- truncnorm::rtruncnorm(1, a = de_levels[1],
+                                     mean = de_levels[2],
+                                     sd = de_levels[3])
+    }
+    ifelse(dir_decision == 1, level, 1/level)
   })
-  
+
   ## the "experimental condition" copy numbers are the
   ## control copy numbers * fold changes
   exp_copy_numbers <- ctr_copy_numbers * fold_changes

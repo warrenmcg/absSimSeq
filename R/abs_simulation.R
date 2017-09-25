@@ -6,12 +6,16 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
                            num_reps = c(10, 10),
                            gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3, 3), 2),
                            de_prob = 0.01,
+                           de_levels = c(1.25, 2, 4),
+                           de_type = "discrete",
                            dir_prob = 0.5,
                            seed = 1,
                            polyester_sim = FALSE) {
   message("generating mean absolute copy numbers and relative TPMs")
   results <- generate_abs_changes(tpms = tpms,
                                   de_prob = de_prob,
+                                  de_levels = de_levels,
+                                  de_type = de_type,
                                   dir_prob = dir_prob,
                                   seed = seed,
                                   num_reps = num_reps)
@@ -19,9 +23,9 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
   
   eff_lengths <- eff_lengths[match(rownames(new_tpms),
                                    eff_lengths$target_id), ]
-  
+
   mean_lib_size <- 20*10^6
-  
+
   message("converting relative TPMs to expected reads per transcript")
   expected_reads <- tpms_to_expected_reads(new_tpms,
                                            eff_lengths[,2],
@@ -102,7 +106,19 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #' @param de_probs, vector of same length as \code{num_runs}, with
 #'   numbers between 0 and 1 describing the probability of differential
 #'   expression for each simulation
-#' @param dir_probs, vector of samel length as \code{num_runs}, with
+#' @param de_type, either "discrete" or "normal" to indicate using
+#'   discrete levels of differential expression, or to used a truncated
+#'   normal for a continuum of differential expression. The levels of
+#'   discrete DE, or the parameters for the truncated normal, are
+#'   determined by \code{de_levels}.
+#' @param de_levels, if \code{de_type} is "discrete", this is a vector
+#'   with one or more numbers > 1 to indicate the levels of differential
+#'   expression (e.g. 50% increase would be 1.5). If \code{de_type} is
+#'   "normal", this is a vector of length 3 specifying the following
+#'   parameters for the \code{rtruncnorm} function: a (the min of
+#'   the truncated normal; it should be > 1), mean, and sd.
+#'   When the direction is down, the inverse of these levels will be used.
+#' @param dir_probs, vector of same length as \code{num_runs}, with
 #'   numbers between 0 and 1 describing the probability of differential
 #'   expression being increased, given a transcript that is changing.
 #' @param polyester_sim, should polyester be run? (default to \code{FALSE}
@@ -136,6 +152,8 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3, 3),
                                              2),
                                de_probs = 0.1,
+                               de_type = "discrete",
+                               de_levels = c(1.25, 2, 4),
                                dir_probs = 0.5,
                                polyester_sim = FALSE,
                                sleuth_save = FALSE, num_cores = 1) {
@@ -188,7 +206,8 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     real_outdir <- file.path(outdir, paste0("run", i, "_fasta"))
     result <- abs_simulation(tpms, counts, s2c, eff_lengths,
                              sample_index, host, species, real_outdir,
-                             num_reps, gc_bias, de_probs[i], dir_probs[i],
+                             num_reps, gc_bias, de_probs[i], de_levels,
+                             de_type, dir_probs[i],
                              seed + (i-1)*5*10^5, polyester_sim)
     # polyester_files <- list.files(outdir, "^sample")
     # info_files <- list.files(outdir, "^sim")
