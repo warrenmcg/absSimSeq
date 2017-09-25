@@ -15,7 +15,6 @@ final_results <- run_abs_simulation(fasta_file, sleuth_file, sample_index,
                                     de_probs = de_probs, dir_probs = dir_probs,
                                     polyester_sim = T, gc_bias = gc_bias,
                                     num_cores = num_runs)
-                                    #num_cores = num_runs)
 
 summaries <- summarize_abs_sim_runs(final_results, num_runs, de_probs, dir_probs)
 save(final_results, summaries, sample_index, de_probs, dir_probs, fasta_file,
