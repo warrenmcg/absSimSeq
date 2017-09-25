@@ -42,47 +42,24 @@ get_least_var_targets <- function(sleuth.obj = NULL, which_var = "tpm") {
   which_var <- match.arg(which_var, c("tpm", "est_counts", "scaled_reads_per_base"))
 
   table <- sleuth:::spread_abundance_by(sleuth.obj$obs_norm, which_var)
-  table_cov <- apply(table, 1, function(x) sd(x) / mean(x))
   table <- table[which(rownames(table) %in% sleuth.obj$filter_df$target_id), ]
-
-  results <- sleuth::sleuth_results(sleuth.obj, names(sleuth.obj$tests$wt[[1]])[1])
-  results <- results[order(results$target_id), ]
-
-  nsamples <- ncol(table)
-  variance <- nsamples * (results$var_obs + results$tech_var) /
-    (2 * nsamples - 2)
-
-  cov <- sqrt(variance) / results$mean_obs
-  est_cov <- sqrt(results$var_obs) / results$mean_obs
-
-  names(cov) <- names(est_cov) <- results$target_id
-  cov <- cov[which(names(cov) %in% rownames(table))]
-  est_cov <- est_cov[which(names(est_cov) %in% rownames(table))]
-  table_cov <- table_cov[which(names(table_cov) %in% rownames(table))]
-
+  
+  cov <- apply(table, 1, function(x) sd(x) / mean(x))
   means <- apply(table, 1, mean)
 
   small_id <- names(which(cov == min(cov, na.rm=T)))
-  small_est_id <- names(which(est_cov == min(est_cov, na.rm=T)))
-  small_table_id <- names(which(table_cov == min(table_cov, na.rm=T)))
 
   topquart <- summary(means)[5]
   topquart_id <- names(which(cov == min(cov[which(means>=topquart)])))
-  topquart_est_id <- names(which(est_cov == min(est_cov[which(means>=topquart)])))
-  topquart_table_id <- names(which(table_cov == min(table_cov[which(means>=topquart)])))
 
   threshold <- ifelse(which_var == "tpm", 10, 5000)
   highexp_id <- names(which(cov == min(cov[which(means>=threshold)])))
-  highexp_est_id <- names(which(est_cov == min(est_cov[which(means>=threshold)])))
-  highexp_table_id <- names(which(table_cov == min(table_cov[which(means>=threshold)])))
 
   small_id <- reduceToOneCandidate(small_id, means)
   topquart_id <- reduceToOneCandidate(topquart_id, means)
   highexp_id <- reduceToOneCandidate(highexp_id, means)
 
   ids <- c(small_id, topquart_id, highexp_id)
-  est_ids <- c(small_est_id, topquart_est_id, highexp_est_id)
-  table_ids <- c(small_table_id, topquart_table_id, highexp_table_id)
-  names(ids) <- names(est_ids) <- names(table_ids) <- c("small_id", "topquartile_id", "highTPM_id")
-  list(ids = ids, est_ids = est_ids, table_ids = table_ids)
+  names(ids) <- c("small_id", "topquartile_id", "highTPM_id")
+  ids
 }
