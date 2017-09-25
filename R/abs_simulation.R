@@ -37,15 +37,13 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
   consistent <- calculate_consistency(results$abs_fold_changes,
                                       rel_fc)
   sizes <- NULL
+  reads_per_transcript <- expected_reads$expected_reads[, 1]#, drop = FALSE]
+  sizes <- calculate_sizes(counts, s2c, reads_per_transcript,
+                           polyester_fc[, 2], single_value = T)
+  sizes[which(is.na(sizes) | sizes==0)] <- 1e-22
   if (polyester_sim) {
     #require(polyester, lib.loc = "~/R/x86_64-pc-linux-gnu-library/3.4")
     lib_sizes <- rnorm(sum(num_reps), 1, sd = 0.05)
-    reads_per_transcript <- expected_reads$expected_reads[, 1]#, drop = FALSE]
-    sizes <- calculate_sizes(counts, s2c, reads_per_transcript,
-                             polyester_fc[, 2])
-    sizes[sizes==0] <- 1e-22
-    #sizes = reads_per_transcript/3
-    #sizes[sizes==0] <- 1e-22
     # how to empirically get GC bias
     #gc_bias <- ??
     print(length(reads_per_transcript))
