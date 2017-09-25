@@ -10,6 +10,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
                            de_type = "discrete",
                            dir_prob = 0.5,
                            seed = 1,
+                           mean_lib_size = 20*10^6,
                            polyester_sim = FALSE) {
   message("generating mean absolute copy numbers and relative TPMs")
   results <- generate_abs_changes(tpms = tpms,
@@ -23,8 +24,6 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
   
   eff_lengths <- eff_lengths[match(rownames(new_tpms),
                                    eff_lengths$target_id), ]
-
-  mean_lib_size <- 20*10^6
 
   message("converting relative TPMs to expected reads per transcript")
   expected_reads <- tpms_to_expected_reads(new_tpms,
@@ -40,7 +39,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
   sizes <- NULL
   if (polyester_sim) {
     #require(polyester, lib.loc = "~/R/x86_64-pc-linux-gnu-library/3.4")
-    lib_sizes <- rnorm(sum(num_reps), 1, sd = 0.01)
+    lib_sizes <- rnorm(sum(num_reps), 1, sd = 0.05)
     reads_per_transcript <- expected_reads$expected_reads[, 1]#, drop = FALSE]
     sizes <- calculate_sizes(counts, s2c, reads_per_transcript,
                              polyester_fc[, 2])
@@ -121,6 +120,10 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #' @param dir_probs, vector of same length as \code{num_runs}, with
 #'   numbers between 0 and 1 describing the probability of differential
 #'   expression being increased, given a transcript that is changing.
+#' @param mean_lib_size, the average number of reads per library to be
+#'   simulated. Variability in the exact library size per sample will
+#'   be introduced with a normal using a coefficient of variation of 5%.
+#'   (default is 20 million reads).
 #' @param polyester_sim, should polyester be run? (default to \code{FALSE}
 #'   to save time when you are merely interested in the ground truth)
 #' @param sleuth_save if \code{TRUE}, the sleuth object was saved using
@@ -155,6 +158,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                de_type = "discrete",
                                de_levels = c(1.25, 2, 4),
                                dir_probs = 0.5,
+                               mean_lib_size = 20*10^6,
                                polyester_sim = FALSE,
                                sleuth_save = FALSE, num_cores = 1) {
   message("loading sleuth results object")
@@ -207,7 +211,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     result <- abs_simulation(tpms, counts, s2c, eff_lengths,
                              sample_index, host, species, real_outdir,
                              num_reps, gc_bias, de_probs[i], de_levels,
-                             de_type, dir_probs[i],
+                             de_type, dir_probs[i], mean_lib_size,
                              seed + (i-1)*5*10^5, polyester_sim)
     # polyester_files <- list.files(outdir, "^sample")
     # info_files <- list.files(outdir, "^sim")
