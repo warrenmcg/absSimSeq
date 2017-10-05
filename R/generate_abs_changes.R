@@ -43,7 +43,8 @@ generate_abs_changes <- function(tpms = NULL,
                                  de_levels = c(1.25, 2, 4),
                                  de_type = "discrete",
                                  seed = 1,
-                                 num_reps = c(10, 10)) {
+                                 num_reps = c(10, 10),
+                                 min_tpm = 1) {
   set.seed(seed)
   stopifnot(is.numeric(tpms))
   if(length(num_reps)!=2)
@@ -58,10 +59,12 @@ generate_abs_changes <- function(tpms = NULL,
 
   # The conceptual shift from relative TPMs to absolute copy numbers
   ctr_copy_numbers <- tpms
+  tpm_filter <- which(ctr_copy_numbers >= min_tpm)
+  eligible_trans <- ctr_copy_numbers[tpm_filter]
   # garbage collection to keep memory footprint small
   rm(tpms)
   ## these are now treated as transcript copy numbers / cell
-  num_trans <- length(ctr_copy_numbers)
+  num_trans <- length(eligible_trans)
   num_levels <- length(de_levels)
 
   if (num_levels < 3 & de_type == "normal") {
@@ -83,7 +86,7 @@ generate_abs_changes <- function(tpms = NULL,
 
   ## determine fold changes based on the 'coin flips' for
   ## differential expression, then the direction, then the level
-  fold_changes <- sapply(seq_along(dir_decisions), function(x) {
+  eligible_fcs <- sapply(seq_along(dir_decisions), function(x) {
     dir_decision <- dir_decisions[x]
     if(is.na(dir_decision)) return(1)
     if (de_type == "discrete") {
@@ -99,8 +102,10 @@ generate_abs_changes <- function(tpms = NULL,
 
   ## the "experimental condition" copy numbers are the
   ## control copy numbers * fold changes
+  fold_changes <- rep(1, length(ctr_copy_numbers))
+  fold_changes[tpm_filter] <- eligible_fcs
   exp_copy_numbers <- ctr_copy_numbers * fold_changes
-  
+
   ## the absolute data is combining the control and experimental numbers
   ## these represent the "mean" values for each transcript in each condition
   abs_samples <- cbind(ctr_copy_numbers, exp_copy_numbers)
