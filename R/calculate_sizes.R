@@ -1,25 +1,41 @@
-# This function calculates size factors for use with the polyester simulation
-# using real data.
-# In a negative binomial distribution, if the size is r, then the variance of
-# the NB random variable is V = mean + mean^2 / r
-# It is estimated using DESeq2's \code{estimateDispersions} function.
-# Note: Dispersion = 1 / r
+#' This function calculates size factors for use with the polyester simulation
+#' using real data.
+#' In a negative binomial distribution, if the size is r, then the variance of
+#' the NB random variable is V = mean + mean^2 / r
+#' It is estimated using DESeq2's \code{estimateDispersions} function.
+#' Note: Dispersion = 1 / r
 calculate_sizes <- function(counts = NULL, s2c, reads_pt = NULL,
-                            fc = NULL, single_value = TRUE) {
+                            fc = NULL, single_value = TRUE,
+                            min_dispersion = 1e-6) {
   dds <- DESeq2::DESeqDataSetFromMatrix(countData = round(counts),
                                         colData = s2c,
                                         design = formula("~1"))
-  DESeq2::sizeFactors(dds) <- 1
+  dds <- DESeq2::estimateSizeFactors(dds)
   dds <- DESeq2::estimateDispersions(dds)
+  
   if (single_value) {
     # size (i.e. r) = 1 / dispersion
-    sizes <- 1 / DESeq2::dispersions(dds)
+    dispersions <- DESeq2::dispersions(dds)
   } else {
     func <- dds@dispersionFunction
     basemeans <- matrix(c(reads_pt, reads_pt), nrow=length(reads_pt))
-    basemeans[,2] <- basemeans[,1] * fc
+    basemeans[, 2] <- basemeans[, 1] * fc
     # size (i.e. r) = 1 / dispersion
-    sizes <- 1 / func(basemeans)
+    dispersions <- func(basemeans)
   }
+  disp_filt <- dispersions > min_dispersion
+  disp_filt <- ifelse(is.na(disp_filt), FALSE, disp_filt)
+  if (is.null(dim(dispersions))) {
+    med_dispersion <- median(dispersions[disp_filt])
+    dispersions <- ifelse(disp_filt, dispersions, med_dispersion)
+  } else {
+    med_dispersions <- sapply(1:2, function(i) {
+      median(dispersions[, i][disp_filt[, i]])
+    })
+    dispersions <- sapply(1:2, function(i) {
+      ifelse(disp_filt[, i], dispersions[, i], med_dispersions[i])
+    })
+  }  
+  sizes <- 1 / dispersions
   sizes
 }
