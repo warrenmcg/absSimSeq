@@ -167,7 +167,7 @@ sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                                          alr_comparison$alr_diff > 0,
                                          1, -1))
     alr_comparison$direction <- ifelse(is.na(alr_comparison$qval), 0,
-                            alr_comparison$b > 0, 1, -1))
+                            alr_comparison$b > 0, 1, -1)
   } else {
     alr_comparison$de_status <- ifelse(abs(alr_comparison$alr_diff) < 1e-5,
                                        0, 1)
