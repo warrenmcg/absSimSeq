@@ -47,6 +47,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
     # how to empirically get GC bias
     #gc_bias <- ??
     print(length(reads_per_transcript))
+    print(dim(polyester_fc))
     message("simulating an RNA-Seq experiment using 'polyester' package")
     polyester::simulate_experiment(fasta = fasta_file, outdir = outdir,
                                     num_reps = num_reps,
@@ -126,7 +127,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #'   to save time when you are merely interested in the ground truth)
 #' @param sleuth_save if \code{TRUE}, the sleuth object was saved using
 #'   'sleuth_save' and will be loaded using 'sleuth_load'.
-#' @num_cores the number of cores to be used to run parallel simulations.
+#' @param num_cores the number of cores to be used to run parallel simulations.
 #'   the default is to use just one.
 #' 
 #' @return list with two members:
@@ -174,11 +175,13 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   message("loading transcripts from FASTA file")
   transcripts <- Biostrings::readDNAStringSet(fasta_file)
   if(nchar(names(transcripts)[1]) > 15) {
-    names(transcripts) <- sapply(names(transcripts), function(x) {
-      strsplit(x, " ", fixed = T)[[1]][2]
-    })
+    if (grepl(" ", names(transcripts)[1], fixed = T)) {
+      names(transcripts) <- sapply(names(transcripts), function(x) {
+        strsplit(x, " ", fixed = T)[[1]][2]
+      })
+    }
   } else {
-    message("loading annotations from biomaRt")
+    message("loading annotations from biomaRt to get version numbers")
     mart <- biomaRt::useMart("ENSEMBL_MART_ENSEMBL",
                              host = host,
                              dataset = paste(species, "gene_ensembl", sep = "_"))
@@ -209,8 +212,9 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     result <- abs_simulation(tpms, counts, s2c, eff_lengths,
                              sample_index, host, species, real_outdir,
                              num_reps, gc_bias, de_probs[i], de_levels,
-                             de_type, dir_probs[i], mean_lib_size,
-                             seed + (i-1)*5*10^5, polyester_sim)
+                             de_type, dir_probs[i],
+                             seed + (i-1)*5*10^5, mean_lib_size,
+                             polyester_sim)
     # polyester_files <- list.files(outdir, "^sample")
     # info_files <- list.files(outdir, "^sim")
     # old_files <- c(polyester_files, info_files)
