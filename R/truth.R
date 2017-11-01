@@ -9,21 +9,25 @@ sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
     in_dir <- file.path(sleuth_dir, paste0("sleuth_out_run", index))
     prefix <- file.path(in_dir, paste0("run", index))
     if (gene_mode) {
-      trans_file <- paste0(prefix, "Gene.RData")
-      alr_file <- paste0(prefix, "_alrGene.RData")
+      trans_file <- paste0(prefix, "Gene.rda")
+      alr_file <- paste0(prefix, "_alrGene.rda")
     } else {
-      trans_file <- paste0(prefix, ".RData")
-      alr_file <- paste0(prefix, "_alr.RData")
+      trans_file <- paste0(prefix, ".rda")
+      alr_file <- paste0(prefix, "_alr.rda")
     }
   } else {
-    trans_file <- file.path(sleuth_dir, paste0(prefixes[1], ".RData"))
-    alr_file <- file.path(sleuth_dir, paste0(prefixes[2], ".RData"))
+    trans_file <- file.path(sleuth_dir, paste0(prefixes[1], ".rda"))
+    alr_file <- file.path(sleuth_dir, paste0(prefixes[2], ".rda"))
     prefix <- prefixes[3]
     out_dir <- dirname(prefixes[3])
   }
   
   message("loading ", trans_file)
-  load(trans_file)
+  tryCatch(sleuth.obj <- sleuth::sleuth_load(trans_file),
+           error = function(e) {
+             trans_file <- gsub(".rda$", ".RData", trans_file)
+             load(trans_file)
+           })
   if (test == "wt") {
     old_results <- sleuth::sleuth_results(sleuth.obj, "conditionexperiment")
   } else {
@@ -47,7 +51,11 @@ sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
   old_results <- merge(old_results, old_means,
                        by.x = "target_id", by.y = "row.names", all = T)
   message("loading ", alr_file)
-  load(alr_file)
+  tryCatch(sleuth.obj <- sleuth::sleuth_load(alr_file),
+           error = function(e) {
+             alr_file <- gsub(".rda$", ".RData", alr_file)
+             load(alr_file)
+           })
   if (test == "wt") {
     alr_results <- sleuth::sleuth_results(sleuth.obj, "conditionexperiment")
   } else {
@@ -167,7 +175,7 @@ sleuth_sim_to_truth <- function(index, sleuth_dir = ".", gene_mode = FALSE,
                                          alr_comparison$alr_diff > 0,
                                          1, -1))
     alr_comparison$direction <- ifelse(is.na(alr_comparison$qval), 0,
-                            alr_comparison$b > 0, 1, -1)
+                            ifelse(alr_comparison$b > 0, 1, -1))
   } else {
     alr_comparison$de_status <- ifelse(abs(alr_comparison$alr_diff) < 1e-5,
                                        0, 1)
@@ -447,7 +455,7 @@ other_sim_to_truth <- function(index, in_dir = ".", gene_mode = FALSE,
     num_col <- "alr_diff"
     dir_col <- "effect"
   } else {
-    num_col <- "abs_fold_change"
+    num_col <- "abs_fold_changes"
   }
 
   ## Common code for all tools to process the decision of True vs False Positive
@@ -586,9 +594,9 @@ compare_sim_to_truth <- function(final_results, in_dir = ".",
     }
   } else {
     sim2truth <- lapply(seq_along(final_results$results), function(x) {
-      other_sim_to_truth(index = x, sleuth_dir = in_dir, gene_mode = gene_mode,
+      other_sim_to_truth(index = x, in_dir = in_dir, gene_mode = gene_mode,
                    group_ids = group_ids, final_results = final_results,
-                   prefixes = prefixes[[x]], test = test, tool = tool)
+                   prefixes = prefixes[[x]], tool = tool)
     })
   }
   sim2truth
