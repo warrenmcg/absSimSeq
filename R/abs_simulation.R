@@ -38,16 +38,15 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
                                       rel_fc)
   sizes <- NULL
   reads_per_transcript <- expected_reads$expected_reads[, 1]#, drop = FALSE]
+  message("calculating the sizes using DESeq2 dispersion estimation")
   sizes <- calculate_sizes(counts, s2c, reads_per_transcript,
-                           polyester_fc[, 2], single_value = T)
+                           polyester_fc[, 2], single_value = FALSE)
   sizes[which(is.na(sizes) | sizes==0)] <- 1e-22
   if (polyester_sim) {
     #require(polyester, lib.loc = "~/R/x86_64-pc-linux-gnu-library/3.4")
     lib_sizes <- rnorm(sum(num_reps), 1, sd = 0.05)
     # how to empirically get GC bias
     #gc_bias <- ??
-    print(length(reads_per_transcript))
-    print(dim(polyester_fc))
     message("simulating an RNA-Seq experiment using 'polyester' package")
     polyester::simulate_experiment(fasta = fasta_file, outdir = outdir,
                                     num_reps = num_reps,
@@ -202,13 +201,15 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   if (sum(tpms) != 10^6) tpms <- tpms / sum(tpms) * 10^6
   
   eff_lengths <- unique(sleuth.obj$obs_raw[, c("target_id", "eff_len")])
-  
+  rm(sleuth.obj)
+
   results <- vector(mode = "list", length = num_runs)
-  rel_consistency <- vector(mode = "list", length = num_runs)
+  alr_data <- vector(mode = "list", length = num_runs)
   results <- parallel::mclapply(seq(num_runs), function(i) {
-    message(paste0("running run #", i))
-    dir.create(file.path(outdir, paste0("run", i, "_fasta")), showWarnings = F)
-    real_outdir <- file.path(outdir, paste0("run", i, "_fasta"))
+    run_num <- sprintf('%02d', i)
+    message(paste0("running run #", run_num))
+    dir.create(file.path(outdir, paste0("run", run_num, "_fasta")), showWarnings = F)
+    real_outdir <- file.path(outdir, paste0("run", run_num, "_fasta"))
     result <- abs_simulation(tpms, counts, s2c, eff_lengths,
                              sample_index, host, species, real_outdir,
                              num_reps, gc_bias, de_probs[i], de_levels,
@@ -224,12 +225,29 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     #                             to = file.path(outdir, new_files))
     result
   }, mc.cores = min(parallel::detectCores()-2, num_runs, num_cores))
+  checks <- sapply(results, function(x) class(x) == "try-error")
+  if(any(checks)) {
+    failed_runs <- results[checks]
+    error_msg <- paste(paste("run", which(checks)), print(failed_runs), ": ")
+    error_msg <- paste(error_msg, collapse = "\n")
+    stop('at least one of the simulation runs failed. see the error messages below:\n',
+         error_msg)
+  }
   alr_data <- parallel::mclapply(seq(num_runs), function(i) {
-    message(paste0("finding ALR consistency from run #", i))
+    run_num <- sprintf('%02d', i)
+    message(paste0("finding ALR consistency from run #", run_num))
     calculate_rel_consistency(results[[i]]$copy_numbers_per_cell,
                               results[[i]]$transcript_abundances,
                               denom = denom)
   }, mc.cores = min(parallel::detectCores()-2, num_runs, num_cores))
+  checks <- sapply(alr_data, function(x) class(x) == "try-error")
+  if(any(checks)) {
+    failed_runs <- alr_data[checks]
+    error_msg <- paste(paste("run", which(checks)), print(failed_runs), ": ")
+    error_msg <- paste(error_msg, collapse = "\n")
+    stop('at least one of the ALR runs failed. see the error messages below:\n',
+         error_msg)
+  }
   return(list(results = results, alr_data = alr_data))
 }
 
