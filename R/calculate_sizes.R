@@ -7,12 +7,14 @@
 calculate_sizes <- function(counts = NULL, s2c, reads_pt = NULL,
                             fc = NULL, single_value = TRUE,
                             min_dispersion = 1e-6) {
-  dds <- DESeq2::DESeqDataSetFromMatrix(countData = round(counts),
+  counts <- round(counts)
+  mode(counts) <- "integer"
+  dds <- DESeq2::DESeqDataSetFromMatrix(countData = counts,
                                         colData = s2c,
                                         design = formula("~1"))
   dds <- DESeq2::estimateSizeFactors(dds)
-  dds <- DESeq2::estimateDispersions(dds)
-  
+  dds <- suppressMessages(DESeq2::estimateDispersions(dds))
+
   if (single_value) {
     # size (i.e. r) = 1 / dispersion
     dispersions <- DESeq2::dispersions(dds)
