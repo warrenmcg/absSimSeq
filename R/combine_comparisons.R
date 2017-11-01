@@ -33,7 +33,7 @@ combine_comparisons <- function(comparisons, which_comparison = "alr",
     ggplot2::geom_line() + ggplot2::xlim(c(0,0.25)) +
     ggplot2::geom_abline(intercept = 0, slope = 1, linetype = 3,
                          alpha = 0.3)
-  if (split) {
+  if (!is.null(split)) {
     g <- g + ggplot2::scale_linetype_manual(values = group_df$linetype) +
       ggplot2::scale_color_manual(values = cbbPalette[group_df$tool])
   } else {
@@ -71,7 +71,7 @@ combine_comparisons <- function(comparisons, which_comparison = "alr",
                         alpha = 0.3) + 
     ggplot2::geom_vline(xintercept = 0.1, linetype = 3,
                         alpha = 0.3)
-  if (split) {
+  if (!is.null(split)) {
     g2 <- g2 + ggplot2::scale_linetype_manual(values = group_df$linetype) +
       ggplot2::scale_color_manual(values = cbbPalette[group_df$tool])
   }
