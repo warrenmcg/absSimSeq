@@ -9,8 +9,8 @@ the NB random variable is V = mean + mean^2 / r
 It is estimated using DESeq2's \code{estimateDispersions} function.
 Note: Dispersion = 1 / r}
 \usage{
-calculate_sizes(counts = NULL, s2c, reads_pt = NULL, fc = NULL,
-  single_value = TRUE, min_dispersion = 1e-06)
+calculate_sizes(counts = NULL, s2c, design, reads_pt = NULL,
+  fc = NULL, single_value = TRUE, min_dispersion = 1e-06)
 }
 \description{
 This function calculates size factors for use with the polyester simulation

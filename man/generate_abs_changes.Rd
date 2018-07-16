@@ -14,7 +14,11 @@ preferably named so that the results are tied to target names.}
 
 \item{de_prob}{a single value greater than 0 and less than 1 to
 denote the probability of an individual target having differential
-expression}
+expression. This is referring to the expected percentage of
+all features that will be differentially expressed (DE). If min_tpm
+is set, then this probability will be adjusted to make sure that
+the number of DE features among the filtered features matches the
+expected proportion of DE for all features.}
 
 \item{dir_prob}{a single value greater than 0 and less than 1 to
 denote the probability of the differential expression being increased.}
@@ -28,6 +32,14 @@ the results are reproducible}
 
 \item{num_reps}{an integer vector describing the number of replicates
 each condition will have.}
+
+\item{min_tpm}{the minimum transcripts per million that determines
+which transcripts are expressed highly enough to be considered
+as potentially differentially expressed. This helps avoid simulating
+differential expression with low abundance transcripts. Note that this
+does not necessarily correspond to low-abundance transcripts if considering
+estimated counts. This can be set to \code{NULL}, \code{FALSE}, or 0 to
+turn filtering off and consider all features.}
 }
 \value{
 a list with the following members:

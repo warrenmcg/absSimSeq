@@ -9,8 +9,9 @@ run_abs_simulation(fasta_file, sleuth_file, sample_index = 1,
   outdir = ".", num_reps = c(10, 10), denom = "ENST00000396859.5",
   seed = 1, num_runs = 1, gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3, 3),
   2), de_probs = 0.1, de_type = "discrete", de_levels = c(1.25, 2, 4),
-  dir_probs = 0.5, mean_lib_size = 20 * 10^6, polyester_sim = FALSE,
-  sleuth_save = FALSE, num_cores = 1)
+  dir_probs = 0.5, mean_lib_size = 20 * 10^6, single_value = TRUE,
+  polyester_sim = FALSE, control_condition = NULL, sleuth_save = FALSE,
+  num_cores = 1)
 }
 \arguments{
 \item{fasta_file, }{a multiFASTA file with the transcripts to be used in
@@ -22,7 +23,9 @@ sleuth object will be loaded using \code{load}, and the name of the
 sleuth object is expected to be 'sleuth.obj'.}
 
 \item{sample_index, }{which sample from the real dataset should be used
-as the starting point for the simulation?}
+as the starting point for the simulation? You may use a number or string,
+as long as it is a valid column index for the dataset. If "mean" is given,
+then the mean of the control samples will be used.}
 
 \item{host, }{the URL to be used to download annotations using biomaRt.
 the default is the archive URL for Ensembl V87.}
@@ -74,8 +77,22 @@ simulated. Variability in the exact library size per sample will
 be introduced with a normal using a coefficient of variation of 5%.
 (default is 20 million reads).}
 
+\item{single_value, }{if \code{TRUE}, sizes are calculated for the whole
+experiment using DESeq2 estimateDispersions; otherwise, sizes are
+interpolated using the dispersion function from DESeq2 using the mean
+counts for each condition.}
+
 \item{polyester_sim, }{should polyester be run? (default to \code{FALSE}
 to save time when you are merely interested in the ground truth)}
+
+\item{control_condition, }{what factor level should be used to define
+the control condition? This is used to select control samples to
+estimate dispersions for a null distribution, i.e. variance of estimated
+counts in an experiment without an expectation of differential expression.
+The default, \code{NULL}, uses all of the samples in the provided sleuth_file.
+Note that if this is specified, DESeq2 will estimate dispersions using an
+intercept only model (~1), whereas if it is left \code{NULL}, the full
+formula from the sleuth object will be used (obj$full_formula).}
 
 \item{sleuth_save}{if \code{TRUE}, the sleuth object was saved using
 'sleuth_save' and will be loaded using 'sleuth_load'.}
