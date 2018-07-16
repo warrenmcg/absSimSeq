@@ -1,6 +1,6 @@
 # This function is the real meat of the simulation code
 #' @importFrom polyester simulate_experiment
-abs_simulation <- function(tpms, counts, s2c, eff_lengths,
+abs_simulation <- function(tpms, counts, s2c, eff_lengths, fasta_file,
                            host = "dec2016.archive.ensembl.org",
                            species = "hsapiens", outdir = ".",
                            num_reps = c(10, 10),
@@ -247,7 +247,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     message(paste0("running run #", run_num))
     dir.create(file.path(outdir, paste0("run", run_num, "_fasta")), showWarnings = F)
     real_outdir <- file.path(outdir, paste0("run", run_num, "_fasta"))
-    result <- abs_simulation(tpms, counts, s2c, eff_lengths,
+    result <- abs_simulation(tpms, counts, s2c, eff_lengths, fasta_file,
                              host, species, real_outdir,
                              num_reps, gc_bias, de_probs[i], de_levels,
                              de_type, dir_probs[i],
