@@ -227,6 +227,8 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   }
   stopifnot(all(grepl("^ENS", names(transcripts))))
 
+  transcripts <- transcripts[rownames(tpms)]
+
   if(sample_index == "mean") {
     tpms <- rowMeans(tpms[, ctr_samples])
   } else {
