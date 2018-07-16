@@ -15,11 +15,13 @@
 #'   sequencing library (e.g. 60 million fragments)
 #' 
 #' @return a list with two entries:
-#'   + expected_reads: an N x 2 matrix of the expected reads for each
-#'   transcript in each condition
-#'   + fold_changes: the perceived fold changes if one were to use the
-#'   expected reads (unnormalized by library size or transcript effective
-#'   length).
+#'   \itemize{
+#'     \item expected_reads: an N x 2 matrix of the expected reads for each
+#'       transcript in each condition
+#'     \item fold_changes: the perceived fold changes if one were to use the
+#'       expected reads (unnormalized by library size or transcript effective
+#'       length).
+#'   }
 #' 
 #' @export
 tpms_to_expected_reads <- function(trans_abund = NULL,

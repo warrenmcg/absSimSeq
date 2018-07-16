@@ -104,10 +104,12 @@ calculate_consistency <- function(fold_changes = NULL, relative_fc = NULL,
 #'   denominator for the additive logratio transformation
 #'
 #' @return a list with three members:
-#'   + alr_means: the ALR transformed values of the copy numbers
-#'   + alr_diff: the difference of logratios between the two conditions
-#'      of the ALR transformed copy numbers
-#'   + alr_consistency: the result from \code{calculate_consistency}
+#'   \itemize{
+#'     \item alr_means: the ALR transformed values of the copy numbers
+#'     \item alr_diff: the difference of logratios between the two conditions
+#'       of the ALR transformed copy numbers
+#'     \item alr_consistency: the result from \code{calculate_consistency}
+#'   }
 #' @export
 calculate_rel_consistency <- function(abs_cns, rel_tpms, denom) {
   alr_cns <- sleuth.comp::alr_transformation(abs_cns, denom)

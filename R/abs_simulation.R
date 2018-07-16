@@ -130,19 +130,23 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #'   the default is to use just one.
 #' 
 #' @return list with two members:
-#'   + results: a list of lists, one entry for each simulation. Each
-#'   simulation's results has the following entries:
-#'   -- all of the entries returned by \code{generate_abs_changes}
-#'   -- sizes: the size parameter for each transcript
-#'   -- expected_reads: an N x 2 matrix with the expected number of 
-#'      fragments for each transcript in each condition
-#'   -- adjusted_consistent_changes: consistency comparing copy numbers
-#'      to the relative data after normalization using the DESeq procedure
-#'   -- adjusted_fold_changes: the fold changes perceived after normalization
-#'      using the DESeq procedure
-#'   + alr_data: a list of lists, one entry for each simulation. Each
-#'   simulation's alr_data list contains the results from
-#'   \code{calculate_rel_consistency}
+#'   \itemize{
+#'     \item results: a list of lists, one entry for each simulation. Each
+#'       simulation's results has the following entries:
+#'       \itemize{
+#'         \item all of the entries returned by \code{generate_abs_changes}
+#'         \item sizes: the size parameter for each transcript
+#'         \item expected_reads: an N x 2 matrix with the expected number of
+#'           fragments for each transcript in each condition
+#'         \item adjusted_consistent_changes: consistency comparing copy numbers
+#'           to the relative data after normalization using the DESeq procedure
+#'         \item adjusted_fold_changes: the fold changes perceived after normalization
+#'           using the DESeq procedure
+#'       }
+#'     \item alr_data: a list of lists, one entry for each simulation. Each
+#'       simulation's alr_data list contains the results from
+#'       \code{calculate_rel_consistency}
+#'   }
 #' @export
 run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                host = "dec2016.archive.ensembl.org",
@@ -265,19 +269,21 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
 #'   being increased, given a transcript that is changing
 #'
 #' @return a data frame with the following columns:
-#'   + run_num: which simulation?
-#'   + de_prob: probability of differential expression
-#'   + dir_prob: probability of DE being up
-#'   + rel*: the number of transcripts with each category of consistency
-#'   between copy numbers and relative TPMs
-#'   + rel_apparent_fc: the apparent fold change of relative TPMs of
-#'   transcripts that are not changing
-#'   + adj*: the number of transcripts with each category of consistency
-#'   between copy numbers and DESeq-normalized counts
-#'   + adj_apparent_fc: the apparent fold change of DESeq-normalized
-#'   counts for transcripts that are not changing
-#'   + alr: the number of transcripts that have consistent
-#'   changes after ALR transformation of copy numbers vs relative TPMs
+#'   \itemize{
+#'     \item run_num: which simulation?
+#'     \item de_prob: probability of differential expression
+#'     \item dir_prob: probability of DE being up
+#'     \item rel*: the number of transcripts with each category of consistency
+#'       between copy numbers and relative TPMs
+#'     \item rel_apparent_fc: the apparent fold change of relative TPMs of
+#'       transcripts that are not changing
+#'     \item adj*: the number of transcripts with each category of consistency
+#'       between copy numbers and DESeq-normalized counts
+#'     \item adj_apparent_fc: the apparent fold change of DESeq-normalized
+#'       counts for transcripts that are not changing
+#'     \item alr: the number of transcripts that have consistent
+#'       changes after ALR transformation of copy numbers vs relative TPMs
+#'   }
 #'
 #' @export
 summarize_abs_sim_runs <- function(abs_sim_runs_list, num_runs,

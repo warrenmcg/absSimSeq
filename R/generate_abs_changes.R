@@ -18,23 +18,25 @@
 #' @param dir_prob a single value greater than 0 and less than 1 to
 #'   denote the probability of the differential expression being increased.
 #' @param de_levels a numeric vector of the different possible levels of
-#'   differential expression (default has three: a "small" change of 25%,
-#'   a moderate change of 100% / 2-fold, and a "large" change of 300% / 4-fold
+#'   differential expression (default has three: a 'small' change of 25\%,
+#'   a moderate change of 100\% / 2-fold, and a 'large' change of 300\% / 4-fold
 #' @param seed what the seed is for the random number generator, so that
 #'   the results are reproducible
-#' @param num_reps an integer vector describing the number of replicates 
+#' @param num_reps an integer vector describing the number of replicates
 #'   each condition will have.
-#' 
+#'
 #' @return a list with the following members:
-#'   + abs_fold_changes: a vector of the absolute fold changes for each target
-#'   + rel_fold_changes: a vector of the perceived relative fold changes
-#'     for each target
-#'   + consistent_changes: the consistency of fold changes as determined by
-#'     \link{calculate_consistency}
-#'   + copy_numbers_per_cell: an N x 2 matrix of the expected copy numbers
-#'     for each target in each condition
-#'   + transcript_abundances: an N x 2 matrix of the expected relative TPMs
-#'     for each target in each condition
+#'   \itemize{
+#'     \item abs_fold_changes: a vector of the absolute fold changes for each target
+#'     \item rel_fold_changes: a vector of the perceived relative fold changes
+#'       for each target
+#'     \item consistent_changes: the consistency of fold changes as determined by
+#'       \code{\link{calculate_consistency}}
+#'     \item copy_numbers_per_cell: an N x 2 matrix of the expected copy numbers
+#'       for each target in each condition
+#'     \item transcript_abundances: an N x 2 matrix of the expected relative TPMs
+#'       for each target in each condition
+#'   }
 #'
 #' @export
 generate_abs_changes <- function(tpms = NULL,
