@@ -11,6 +11,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
                            dir_prob = 0.5,
                            seed = 1,
                            mean_lib_size = 20*10^6,
+                           single_value = TRUE,
                            polyester_sim = FALSE) {
   message("generating mean absolute copy numbers and relative TPMs")
   results <- generate_abs_changes(tpms = tpms,
@@ -40,7 +41,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
   reads_per_transcript <- expected_reads$expected_reads[, 1]
   message("calculating the sizes using DESeq2 dispersion estimation")
   sizes <- calculate_sizes(counts, s2c, reads_per_transcript,
-                           polyester_fc[, 2], single_value = FALSE)
+                           polyester_fc[, 2], single_value = single_value)
   sizes[which(is.na(sizes) | sizes==0)] <- 1e-22
   rm(tpms, counts)
   gc()
@@ -121,6 +122,10 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #'   simulated. Variability in the exact library size per sample will
 #'   be introduced with a normal using a coefficient of variation of 5%.
 #'   (default is 20 million reads).
+#' @param single_value, if \code{TRUE}, sizes are calculated for the whole
+#'   experiment using DESeq2 estimateDispersions; otherwise, sizes are
+#'   interpolated using the dispersion function from DESeq2 using the mean
+#'   counts for each condition.
 #' @param polyester_sim, should polyester be run? (default to \code{FALSE}
 #'   to save time when you are merely interested in the ground truth)
 #' @param sleuth_save if \code{TRUE}, the sleuth object was saved using
@@ -164,6 +169,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                de_levels = c(1.25, 2, 4),
                                dir_probs = 0.5,
                                mean_lib_size = 20*10^6,
+                               single_value = TRUE,
                                polyester_sim = FALSE,
                                sleuth_save = FALSE, num_cores = 1) {
   message("loading sleuth results object")
@@ -223,7 +229,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                              num_reps, gc_bias, de_probs[i], de_levels,
                              de_type, dir_probs[i],
                              seed + (i-1)*5*10^5, mean_lib_size,
-                             polyester_sim)
+                             single_value, polyester_sim)
     result
   }, mc.cores = min(parallel::detectCores()-2, num_runs, num_cores))
   checks <- sapply(results, function(x) class(x) == "try-error")
