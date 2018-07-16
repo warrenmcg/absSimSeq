@@ -21,7 +21,8 @@ Imports:
    sleuth,
    sleuthALR,
    stats,
-   truncnorm
+   truncnorm,
+   utils
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true

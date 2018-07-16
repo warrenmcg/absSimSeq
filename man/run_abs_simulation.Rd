@@ -11,7 +11,8 @@ run_abs_simulation(fasta_file, sleuth_file, sample_index = 1,
   2), de_probs = 0.1, de_type = "discrete", de_levels = c(1.25, 2, 4),
   dir_probs = 0.5, mean_lib_size = 20 * 10^6, single_value = TRUE,
   polyester_sim = FALSE, control_condition = NULL, sleuth_save = FALSE,
-  num_cores = 1)
+  num_cores = 1, include_spikeins = TRUE, spikein_mix = "Mix1",
+  spikein_percent = 0.02)
 }
 \arguments{
 \item{fasta_file, }{a multiFASTA file with the transcripts to be used in
@@ -99,6 +100,17 @@ formula from the sleuth object will be used (obj$full_formula).}
 
 \item{num_cores}{the number of cores to be used to run parallel simulations.
 the default is to use just one.}
+
+\item{include_spikeins}{if \code{TRUE}, will add spike-ins to the simulated
+experiment.}
+
+\item{spikein_mix}{character specifying which mix to use; only accepts
+"Mix1" or "Mix2". If a different mix is desired for each condition, specify
+a character vector containing a mix for each condition. The default is
+"Mix1".}
+
+\item{spikein_percent}{what percent of the total copy numbers in the control
+condition should be spike-in controls? The default is 2\%.}
 }
 \value{
 list with two members:

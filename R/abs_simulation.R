@@ -12,7 +12,10 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
                            seed = 1,
                            mean_lib_size = 20*10^6,
                            single_value = TRUE,
-                           polyester_sim = FALSE) {
+                           polyester_sim = FALSE,
+                           include_spikeins = TRUE,
+                           spikein_mix = "Mix1",
+                           spikein_percent = 0.02) {
   message("generating mean absolute copy numbers and relative TPMs")
   results <- generate_abs_changes(tpms = tpms,
                                   de_prob = de_prob,
@@ -21,8 +24,14 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
                                   dir_prob = dir_prob,
                                   seed = seed,
                                   num_reps = num_reps)
+  if (include_spikeins) {
+    results <- add_spikeins(results = results,
+                            spikein_mix = spikein_mix,
+                            spikein_percent = spikein_percent)
+  }
+
   new_tpms <- results$transcript_abundances
-  
+
   eff_lengths <- eff_lengths[match(rownames(new_tpms),
                                    eff_lengths$target_id), ]
 
@@ -40,10 +49,18 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
   sizes <- NULL
   reads_per_transcript <- expected_reads$expected_reads[, 1]
   message("calculating the sizes using DESeq2 dispersion estimation")
-  sizes <- calculate_sizes(counts, s2c, design, reads_per_transcript,
+  deseq_res <- calculate_sizes(counts, s2c, design, reads_per_transcript,
                            polyester_fc[, 2], single_value = single_value)
+
+  if (include_spikeins) {
+    spikein_sizes <- calculate_spikein_sizes(deseq_res, expected_reads$expected_reads)
+    sizes <- c(deseq_res$sizes, spikein_sizes)
+  } else {
+    sizes <- deseq_res$sizes
+  }
+
   sizes[which(is.na(sizes) | sizes==0)] <- 1e-22
-  rm(tpms, counts)
+  rm(tpms, counts, deseq_res)
   gc()
   if (polyester_sim) {
     lib_sizes <- rnorm(sum(num_reps), 1, sd = 0.05)
@@ -142,7 +159,15 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #'   'sleuth_save' and will be loaded using 'sleuth_load'.
 #' @param num_cores the number of cores to be used to run parallel simulations.
 #'   the default is to use just one.
-#' 
+#' @param include_spikeins if \code{TRUE}, will add spike-ins to the simulated
+#'   experiment.
+#' @param spikein_mix character specifying which mix to use; only accepts
+#'   "Mix1" or "Mix2". If a different mix is desired for each condition, specify
+#'   a character vector containing a mix for each condition. The default is
+#'   "Mix1".
+#' @param spikein_percent what percent of the total copy numbers in the control
+#'   condition should be spike-in controls? The default is 2\%.
+#'
 #' @return list with two members:
 #'   \itemize{
 #'     \item results: a list of lists, one entry for each simulation. Each
@@ -162,10 +187,11 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #'       \code{calculate_rel_consistency}
 #'   }
 #' @importFrom sleuth sleuth_load sleuth_to_matrix
-#' @importFrom Biostrings readDNAStringSet
+#' @importFrom Biostrings readDNAStringSet width writeXStringSet
 #' @importFrom biomaRt useMart getBM
 #' @importFrom parallel mclapply detectCores
 #' @importFrom data.table as.data.table
+#' @importFrom utils data
 #' @export
 run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                host = "dec2016.archive.ensembl.org",
@@ -182,7 +208,9 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                mean_lib_size = 20*10^6,
                                single_value = TRUE,
                                polyester_sim = FALSE, control_condition = NULL,
-                               sleuth_save = FALSE, num_cores = 1) {
+                               sleuth_save = FALSE, num_cores = 1,
+                               include_spikeins = TRUE,
+                               spikein_mix = "Mix1", spikein_percent = 0.02) {
   message("loading sleuth results object")
   if (sleuth_save)
     sleuth.obj <- sleuth::sleuth_load(sleuth_file)
@@ -244,6 +272,19 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   eff_lengths <- eff_lengths[, list(eff_len = median(eff_len)), by = target_id]
   eff_lengths <- as.data.frame(eff_lengths)
   stopifnot(identical(eff_lengths$target_id, names(tpms)))
+
+  if (include_spikeins) {
+    data(ERCC92_fasta, "absSimSeq")
+    spikein_lengths <- Biostrings::width(ERCC92_fasta)
+    spikein_df <- data.frame(target_id = names(ERCC92_fasta),
+                             eff_len = spikein_lengths)
+    eff_lengths <- rbind(eff_lengths, spikein_df)
+
+    transcripts <- c(transcripts, ERCC92_fasta)
+    fasta_dir <- dirname(fasta_file)
+    fasta_file <- file.path(fasta_dir, "temp.fa")
+    Biostrings::writeXStringSet(transcripts, fasta_file)
+  }
   rm(transcripts, sleuth.obj)
   gc()
 
@@ -263,6 +304,9 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                              de_type = de_type, dir_prob = dir_probs[i],
                              seed = seed + (i-1)*5*10^5,
                              mean_lib_size = mean_lib_size,
+                             include_spikeins = include_spikeins,
+                             spikein_mix = spikein_mix,
+                             spikein_percent = spikein_percent,
                              single_value = single_value,
                              polyester_sim = polyester_sim)
     result
@@ -289,6 +333,9 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     error_msg <- paste(error_msg, collapse = "\n")
     stop('at least one of the ALR runs failed. see the error messages below:\n',
          error_msg)
+  }
+  if (include_spikeins) {
+    file.remove(fasta_file)
   }
   return(list(results = results, alr_data = alr_data))
 }

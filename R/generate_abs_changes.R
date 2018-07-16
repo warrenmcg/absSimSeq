@@ -153,3 +153,47 @@ generate_abs_changes <- function(tpms = NULL,
               copy_numbers_per_cell = abs_samples,
               transcript_abundances = relative_samples))
 }
+
+#' importFrom utils data
+add_spikeins <- function(results, spikein_mix = "Mix1", spikein_percent = 0.02) {
+  stopifnot(is.numeric(spikein_percent) && length(spikein_percent) == 1)
+  stopifnot(spikein_percent > 0 && spikein_percent < 1)
+  stopifnot(is.character(spikein_mix))
+  stopifnot(all(spikein_mix %in% c("Mix1", "Mix2")))
+
+  curr_copy_nums <- results$copy_numbers_per_cell
+  actual_percent <- (1 / (1 - spikein_percent)) - 1
+
+  data(ERCC92_data, "absSimSeq")
+
+  if (length(spikein_mix) > 2) {
+    stop("'spikein_mix' has more than two elements. 'absSimSeq' currently only supports two condition experiments")
+  } else if (length(spikein_mix) == 2) {
+    spike_cols <- paste0(spikein_mix, "_molar_conc")
+  } else {
+    spike_cols <- rep(paste0(spikein_mix, "_molar_conc"), 2)
+  }
+
+  spikein_copy_nums <- ERCC92_data[, spike_cols]
+  colnames(spikein_copy_nums) <- colnames(curr_copy_nums)
+
+  ratio <- actual_percent * sum(curr_copy_nums[,1]) / sum(spikein_copy_nums[,1])
+  spikein_copy_nums <- sweep(spikein_copy_nums, 2, ratio, "*")
+
+  new_copy_nums <- rbind(curr_copy_nums, spikein_copy_nums)
+  new_fold_changes <- new_copy_nums[,2] / new_copy_nums[,1]
+  new_fold_changes[is.na(new_fold_changes)] <- 1
+
+  new_tpms <- sweep(new_copy_nums, 2, colSums(new_tpms), "/")
+  new_rel_fcs <- new_tpms[,2] / new_tpms[,1]
+  new_rel_fcs[is.na(new_rel_fcs)] <- 1
+
+  consistent <- calculate_consistency(new_fold_changes, new_rel_fcs)
+
+  return(list(abs_fold_changes = new_fold_changes,
+              rel_fold_changes = new_rel_fcs,
+              consistent_changes = consistent,
+              copy_numbers_per_cell = new_copy_nums,
+              transcript_abundances = new_tpms))
+}
+
