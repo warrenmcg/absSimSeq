@@ -87,7 +87,12 @@ generate_abs_changes <- function(tpms = NULL,
   num_levels <- length(de_levels)
 
   adjusted_de_prob <- de_prob * length(ctr_copy_numbers) / num_trans
-  adjusted_de_prob <- min(c(adjusted_de_prob, 1))
+  if (adjusted_de_prob > 1) {
+    warning(paste0("The specified 'de_prob' and 'min_tpm' leads to there being ",
+                   "more expected differentially expressed features than the total ",
+                   "number of filtered features. Setting adjusted DE prob to 1."))
+    adjusted_de_prob <- 1
+  }
 
   if (num_levels < 3 & de_type == "normal") {
     stop("if you are using a truncated normal, you must specify ",
