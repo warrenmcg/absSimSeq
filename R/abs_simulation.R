@@ -84,7 +84,9 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #'   sleuth object will be loaded using \code{load}, and the name of the
 #'   sleuth object is expected to be 'sleuth.obj'.
 #' @param sample_index, which sample from the real dataset should be used
-#'   as the starting point for the simulation?
+#'   as the starting point for the simulation? You may use a number or string,
+#'   as long as it is a valid column index for the dataset. If "mean" is given,
+#'   then the mean of the control samples will be used.
 #' @param host, the URL to be used to download annotations using biomaRt.
 #'   the default is the archive URL for Ensembl V87.
 #' @param species, the abbreviated latin name of the species (default 
@@ -219,8 +221,13 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     names(transcripts) <- new_names
   }
   stopifnot(all(grepl("^ENS", names(transcripts))))
-  
-  tpms <- tpms[names(transcripts), sample_index]
+
+  if(sample_index == "mean") {
+    tpms <- rowMeans(tpms[, ctr_samples])
+  } else {
+    tpms <- tpms[, sample_index]
+  }
+
   if (sum(tpms) != 10^6) tpms <- tpms / sum(tpms) * 10^6
 
   eff_lengths <- data.table::as.data.table(
