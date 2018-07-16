@@ -11,6 +11,8 @@ Imports:
    biomaRt,
    Biostrings,
    DESeq2,
+   dplyr,
+   methods,
    polyester,
    parallel,
    sleuth,
