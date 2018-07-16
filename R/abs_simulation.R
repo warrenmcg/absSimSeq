@@ -128,6 +128,11 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #'   counts for each condition.
 #' @param polyester_sim, should polyester be run? (default to \code{FALSE}
 #'   to save time when you are merely interested in the ground truth)
+#' @param control_condition, what factor level should be used to define
+#'   the control condition? This is used to select control samples to
+#'   estimate dispersions for a null distribution, i.e. variance of estimated
+#'   counts in an experiment without an expectation of differential expression.
+#'   the default, \code{NULL}, uses all of the samples in the provided sleuth_file.
 #' @param sleuth_save if \code{TRUE}, the sleuth object was saved using
 #'   'sleuth_save' and will be loaded using 'sleuth_load'.
 #' @param num_cores the number of cores to be used to run parallel simulations.
@@ -170,7 +175,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                dir_probs = 0.5,
                                mean_lib_size = 20*10^6,
                                single_value = TRUE,
-                               polyester_sim = FALSE,
+                               polyester_sim = FALSE, control_condition = NULL,
                                sleuth_save = FALSE, num_cores = 1) {
   message("loading sleuth results object")
   if (sleuth_save)
@@ -180,9 +185,13 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   tpms <- sleuth::sleuth_to_matrix(sleuth.obj, "obs_raw", "tpm")
   counts <- sleuth::sleuth_to_matrix(sleuth.obj, "obw_raw", "est_counts")
   s2c <- sleuth.obj$sample_to_covariates
-  ctr_samples <- which(s2c$condition == levels(s2c$condition)[1])
-  s2c <- s2c[ctr_samples, ]
-  counts <- counts[, ctr_samples]
+  if (!is.null(control_condition)) {
+    ctr_samples <- which(s2c$condition == control_condition)
+    s2c <- s2c[ctr_samples, ]
+    counts <- counts[, ctr_samples]
+  } else {
+    ctr_samples <- 1:nrow(s2c)
+  }
   
   message("loading transcripts from FASTA file")
   transcripts <- Biostrings::readDNAStringSet(fasta_file)
