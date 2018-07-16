@@ -10,7 +10,6 @@
 calculate_sizes <- function(counts = NULL, s2c, reads_pt = NULL,
                             fc = NULL, single_value = TRUE,
                             min_dispersion = 1e-6) {
-  counts <- round(counts)
   mode(counts) <- "integer"
   dds <- DESeq2::DESeqDataSetFromMatrix(countData = counts,
                                         colData = s2c,
@@ -19,13 +18,11 @@ calculate_sizes <- function(counts = NULL, s2c, reads_pt = NULL,
   dds <- suppressMessages(DESeq2::estimateDispersions(dds))
 
   if (single_value) {
-    # size (i.e. r) = 1 / dispersion
     dispersions <- DESeq2::dispersions(dds)
   } else {
     func <- DESeq2::dispersionFunction(dds)
     basemeans <- matrix(c(reads_pt, reads_pt), nrow=length(reads_pt))
     basemeans[, 2] <- basemeans[, 1] * fc
-    # size (i.e. r) = 1 / dispersion
     dispersions <- func(basemeans)
   }
   disp_filt <- dispersions > min_dispersion
@@ -41,6 +38,7 @@ calculate_sizes <- function(counts = NULL, s2c, reads_pt = NULL,
       ifelse(disp_filt[, i], dispersions[, i], med_dispersions[i])
     })
   }  
+  # size (i.e. r) = 1 / dispersion
   sizes <- 1 / dispersions
   sizes
 }

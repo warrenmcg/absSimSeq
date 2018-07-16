@@ -1,7 +1,6 @@
 # This function is the real meat of the simulation code
 #' @importFrom polyester simulate_experiment
 abs_simulation <- function(tpms, counts, s2c, eff_lengths,
-                           sample_index = 1,
                            host = "dec2016.archive.ensembl.org",
                            species = "hsapiens", outdir = ".",
                            num_reps = c(10, 10),
@@ -38,16 +37,15 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
   consistent <- calculate_consistency(results$abs_fold_changes,
                                       rel_fc)
   sizes <- NULL
-  reads_per_transcript <- expected_reads$expected_reads[, 1]#, drop = FALSE]
+  reads_per_transcript <- expected_reads$expected_reads[, 1]
   message("calculating the sizes using DESeq2 dispersion estimation")
   sizes <- calculate_sizes(counts, s2c, reads_per_transcript,
                            polyester_fc[, 2], single_value = FALSE)
   sizes[which(is.na(sizes) | sizes==0)] <- 1e-22
+  rm(tpms, counts)
+  gc()
   if (polyester_sim) {
-    #require(polyester, lib.loc = "~/R/x86_64-pc-linux-gnu-library/3.4")
     lib_sizes <- rnorm(sum(num_reps), 1, sd = 0.05)
-    # how to empirically get GC bias
-    #gc_bias <- ??
     message("simulating an RNA-Seq experiment using 'polyester' package")
     polyester::simulate_experiment(fasta = fasta_file, outdir = outdir,
                                     num_reps = num_reps,
@@ -210,7 +208,8 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   if (sum(tpms) != 10^6) tpms <- tpms / sum(tpms) * 10^6
   
   eff_lengths <- unique(sleuth.obj$obs_raw[, c("target_id", "eff_len")])
-  rm(sleuth.obj)
+  rm(transcripts, sleuth.obj)
+  gc()
 
   results <- vector(mode = "list", length = num_runs)
   alr_data <- vector(mode = "list", length = num_runs)
@@ -220,18 +219,11 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     dir.create(file.path(outdir, paste0("run", run_num, "_fasta")), showWarnings = F)
     real_outdir <- file.path(outdir, paste0("run", run_num, "_fasta"))
     result <- abs_simulation(tpms, counts, s2c, eff_lengths,
-                             sample_index, host, species, real_outdir,
+                             host, species, real_outdir,
                              num_reps, gc_bias, de_probs[i], de_levels,
                              de_type, dir_probs[i],
                              seed + (i-1)*5*10^5, mean_lib_size,
                              polyester_sim)
-    # polyester_files <- list.files(outdir, "^sample")
-    # info_files <- list.files(outdir, "^sim")
-    # old_files <- c(polyester_files, info_files)
-    # new_files <- paste(paste0("run", i), old_files)
-    # 
-    # file_results <- file.rename(from = file.path(outdir, old_files),
-    #                             to = file.path(outdir, new_files))
     result
   }, mc.cores = min(parallel::detectCores()-2, num_runs, num_cores))
   checks <- sapply(results, function(x) class(x) == "try-error")

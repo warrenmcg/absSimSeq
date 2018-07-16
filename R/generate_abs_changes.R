@@ -67,6 +67,8 @@ generate_abs_changes <- function(tpms = NULL,
   eligible_trans <- ctr_copy_numbers[tpm_filter]
   # garbage collection to keep memory footprint small
   rm(tpms)
+  gc()
+
   ## these are now treated as transcript copy numbers / cell
   num_trans <- length(eligible_trans)
   num_levels <- length(de_levels)
