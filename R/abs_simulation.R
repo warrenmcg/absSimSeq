@@ -1,4 +1,5 @@
 # This function is the real meat of the simulation code
+#' @importFrom polyester simulate_experiment
 abs_simulation <- function(tpms, counts, s2c, eff_lengths,
                            sample_index = 1,
                            host = "dec2016.archive.ensembl.org",
@@ -147,6 +148,10 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #'       simulation's alr_data list contains the results from
 #'       \code{calculate_rel_consistency}
 #'   }
+#' @importFrom sleuth sleuth_load sleuth_to_matrix
+#' @importFrom Biostrings readDNAStringSet
+#' @importFrom biomaRt useMart getBM
+#' @importFrom parallel mclapply detectCores
 #' @export
 run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                host = "dec2016.archive.ensembl.org",
@@ -168,8 +173,8 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     sleuth.obj <- sleuth::sleuth_load(sleuth_file)
   else
     load(sleuth_file)
-  tpms <- sleuth:::spread_abundance_by(sleuth.obj$obs_raw, "tpm")
-  counts <- sleuth:::spread_abundance_by(sleuth.obj$obs_raw, "est_counts")
+  tpms <- sleuth::sleuth_to_matrix(sleuth.obj, "obs_raw", "tpm")
+  counts <- sleuth::sleuth_to_matrix(sleuth.obj, "obw_raw", "est_counts")
   s2c <- sleuth.obj$sample_to_covariates
   ctr_samples <- which(s2c$condition == levels(s2c$condition)[1])
   s2c <- s2c[ctr_samples, ]

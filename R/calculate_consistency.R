@@ -110,6 +110,7 @@ calculate_consistency <- function(fold_changes = NULL, relative_fc = NULL,
 #'       of the ALR transformed copy numbers
 #'     \item alr_consistency: the result from \code{calculate_consistency}
 #'   }
+#' @importFrom sleuth.comp alr_transformation
 #' @export
 calculate_rel_consistency <- function(abs_cns, rel_tpms, denom) {
   alr_cns <- sleuth.comp::alr_transformation(abs_cns, denom)

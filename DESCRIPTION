@@ -14,7 +14,9 @@ Imports:
    polyester,
    parallel,
    sleuth,
-   sleuth.comp
+   sleuth.comp,
+   stats,
+   truncnorm
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true

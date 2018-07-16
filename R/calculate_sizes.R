@@ -4,6 +4,9 @@
 #' the NB random variable is V = mean + mean^2 / r
 #' It is estimated using DESeq2's \code{estimateDispersions} function.
 #' Note: Dispersion = 1 / r
+#' @importFrom DESeq2 DESeqDataSetFromMatrix estimateSizeFactors estimateDispersions
+#'   dispersions dispersionFunction
+#' @importFrom stats median
 calculate_sizes <- function(counts = NULL, s2c, reads_pt = NULL,
                             fc = NULL, single_value = TRUE,
                             min_dispersion = 1e-6) {
@@ -19,7 +22,7 @@ calculate_sizes <- function(counts = NULL, s2c, reads_pt = NULL,
     # size (i.e. r) = 1 / dispersion
     dispersions <- DESeq2::dispersions(dds)
   } else {
-    func <- dds@dispersionFunction
+    func <- DESeq2::dispersionFunction(dds)
     basemeans <- matrix(c(reads_pt, reads_pt), nrow=length(reads_pt))
     basemeans[, 2] <- basemeans[, 1] * fc
     # size (i.e. r) = 1 / dispersion

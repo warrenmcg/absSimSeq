@@ -23,6 +23,7 @@
 #'       length).
 #'   }
 #' 
+#' @importFrom DESeq2 estimateSizeFactorsForMatrix
 #' @export
 tpms_to_expected_reads <- function(trans_abund = NULL,
                                    eff_lens = NULL,

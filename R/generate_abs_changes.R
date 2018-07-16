@@ -38,6 +38,8 @@
 #'       for each target in each condition
 #'   }
 #'
+#' @importFrom stats rbinom
+#' @importFrom truncnorm rtruncnorm
 #' @export
 generate_abs_changes <- function(tpms = NULL,
                                  de_prob = 0.1,
