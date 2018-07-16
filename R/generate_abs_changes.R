@@ -14,7 +14,11 @@
 #'   preferably named so that the results are tied to target names.
 #' @param de_prob a single value greater than 0 and less than 1 to
 #'   denote the probability of an individual target having differential
-#'   expression
+#'   expression. This is referring to the expected percentage of
+#'   all features that will be differentially expressed (DE). If min_tpm
+#'   is set, then this probability will be adjusted to make sure that
+#'   the number of DE features among the filtered features matches the
+#'   expected proportion of DE for all features.
 #' @param dir_prob a single value greater than 0 and less than 1 to
 #'   denote the probability of the differential expression being increased.
 #' @param de_levels a numeric vector of the different possible levels of
@@ -24,6 +28,13 @@
 #'   the results are reproducible
 #' @param num_reps an integer vector describing the number of replicates
 #'   each condition will have.
+#' @param min_tpm the minimum transcripts per million that determines
+#'   which transcripts are expressed highly enough to be considered
+#'   as potentially differentially expressed. This helps avoid simulating
+#'   differential expression with low abundance transcripts. Note that this
+#'   does not necessarily correspond to low-abundance transcripts if considering
+#'   estimated counts. This can be set to \code{NULL}, \code{FALSE}, or 0 to
+#'   turn filtering off and consider all features.
 #'
 #' @return a list with the following members:
 #'   \itemize{
@@ -61,6 +72,8 @@ generate_abs_changes <- function(tpms = NULL,
          "specify the levels of differential expression")
   }
 
+  if (is.null(min_tpm) || !min_tpm) min_tpm <- 0
+
   # The conceptual shift from relative TPMs to absolute copy numbers
   ctr_copy_numbers <- tpms
   tpm_filter <- which(ctr_copy_numbers >= min_tpm)
@@ -73,6 +86,9 @@ generate_abs_changes <- function(tpms = NULL,
   num_trans <- length(eligible_trans)
   num_levels <- length(de_levels)
 
+  adjusted_de_prob <- de_prob * length(ctr_copy_numbers) / num_trans
+  adjusted_de_prob <- min(c(adjusted_de_prob, 1))
+
   if (num_levels < 3 & de_type == "normal") {
     stop("if you are using a truncated normal, you must specify ",
          "at least three values for the 'de_levels' variable to set ",
@@ -82,7 +98,7 @@ generate_abs_changes <- function(tpms = NULL,
   
   ## de_decision is a bernoulli trial to determine whether each transcript is
   ## differentially expressed or not
-  de_decisions <- rbinom(num_trans, 1, de_prob)
+  de_decisions <- rbinom(num_trans, 1, adjusted_de_prob)
   de_hits <- which(de_decisions==1)
   num_de <- length(de_hits)
   ## dir_decision is a bernoulli trial to determine which direction
