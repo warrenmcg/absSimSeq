@@ -30,13 +30,13 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
   expected_reads <- tpms_to_expected_reads(new_tpms,
                                            eff_lengths[,2],
                                            mean_lib_size)
-  rel_fc <- expected_reads$fold_changes
-  polyester_fc <- rel_fc
+  adj_rel_fc <- expected_reads$adj_fold_changes
+  polyester_fc <- expected_reads$fold_changes
   polyester_fc[is.na(polyester_fc)] <- 1
   polyester_fc <- matrix(c(rep(1, length(polyester_fc)), polyester_fc),
                          nrow = length(polyester_fc))
   consistent <- calculate_consistency(results$abs_fold_changes,
-                                      rel_fc)
+                                      adj_rel_fc)
   sizes <- NULL
   reads_per_transcript <- expected_reads$expected_reads[, 1]
   message("calculating the sizes using DESeq2 dispersion estimation")
@@ -66,7 +66,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
                 values = list(sizes = sizes,
                               expected_reads = expected_reads$expected_reads,
                               adjusted_consistent_changes = consistent,
-                              adjusted_fold_changes = rel_fc)))
+                              adjusted_fold_changes = adj_rel_fc)))
 }
 
 #' Run a copy number simulation

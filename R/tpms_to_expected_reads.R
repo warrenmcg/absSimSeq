@@ -37,7 +37,8 @@ tpms_to_expected_reads <- function(trans_abund = NULL,
   fold_changes[is.na(fold_changes)] <- 1
   size_factors <- DESeq2::estimateSizeFactorsForMatrix(counts = expected_reads)
   adjusted_reads <- sweep(expected_reads, 2, size_factors, FUN = "*")
-  fold_changes <- adjusted_reads[, 2] / adjusted_reads[, 1]
+  adj_fold_changes <- adjusted_reads[, 2] / adjusted_reads[, 1]
   list(expected_reads = expected_reads,
-       fold_changes = fold_changes)
+       fold_changes = fold_changes,
+       adj_fold_changes = adj_fold_changes)
 }
