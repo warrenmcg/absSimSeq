@@ -1,6 +1,6 @@
 # This function is the real meat of the simulation code
 #' @importFrom polyester simulate_experiment
-abs_simulation <- function(tpms, counts, s2c, eff_lengths, fasta_file,
+abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
                            host = "dec2016.archive.ensembl.org",
                            species = "hsapiens", outdir = ".",
                            num_reps = c(10, 10),
@@ -40,7 +40,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths, fasta_file,
   sizes <- NULL
   reads_per_transcript <- expected_reads$expected_reads[, 1]
   message("calculating the sizes using DESeq2 dispersion estimation")
-  sizes <- calculate_sizes(counts, s2c, reads_per_transcript,
+  sizes <- calculate_sizes(counts, s2c, design, reads_per_transcript,
                            polyester_fc[, 2], single_value = single_value)
   sizes[which(is.na(sizes) | sizes==0)] <- 1e-22
   rm(tpms, counts)
@@ -134,7 +134,10 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths, fasta_file,
 #'   the control condition? This is used to select control samples to
 #'   estimate dispersions for a null distribution, i.e. variance of estimated
 #'   counts in an experiment without an expectation of differential expression.
-#'   the default, \code{NULL}, uses all of the samples in the provided sleuth_file.
+#'   The default, \code{NULL}, uses all of the samples in the provided sleuth_file.
+#'   Note that if this is specified, DESeq2 will estimate dispersions using an
+#'   intercept only model (~1), whereas if it is left \code{NULL}, the full
+#'   formula from the sleuth object will be used (obj$full_formula).
 #' @param sleuth_save if \code{TRUE}, the sleuth object was saved using
 #'   'sleuth_save' and will be loaded using 'sleuth_load'.
 #' @param num_cores the number of cores to be used to run parallel simulations.
@@ -192,8 +195,10 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     ctr_samples <- which(s2c$condition == control_condition)
     s2c <- s2c[ctr_samples, ]
     counts <- counts[, ctr_samples]
+    design <- ~1
   } else {
     ctr_samples <- 1:nrow(s2c)
+    design <- sleuth.obj$full_formula
   }
   
   message("loading transcripts from FASTA file")
@@ -247,12 +252,17 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     message(paste0("running run #", run_num))
     dir.create(file.path(outdir, paste0("run", run_num, "_fasta")), showWarnings = F)
     real_outdir <- file.path(outdir, paste0("run", run_num, "_fasta"))
-    result <- abs_simulation(tpms, counts, s2c, eff_lengths, fasta_file,
-                             host, species, real_outdir,
-                             num_reps, gc_bias, de_probs[i], de_levels,
-                             de_type, dir_probs[i],
-                             seed + (i-1)*5*10^5, mean_lib_size,
-                             single_value, polyester_sim)
+    result <- abs_simulation(tpms = tpms, counts = counts, s2c = s2c,
+                             design = design, eff_lengths = eff_lengths,
+                             fasta_file = fasta_file, host = host,
+                             species = species, outdir = real_outdir,
+                             num_reps = num_reps, gc_bias = gc_bias,
+                             de_prob = de_probs[i], de_levels = de_levels,
+                             de_type = de_type, dir_prob = dir_probs[i],
+                             seed = seed + (i-1)*5*10^5,
+                             mean_lib_size = mean_lib_size,
+                             single_value = single_value,
+                             polyester_sim = polyester_sim)
     result
   }, mc.cores = min(parallel::detectCores()-2, num_runs, num_cores))
   checks <- sapply(results, function(x) class(x) == "try-error")

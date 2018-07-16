@@ -7,13 +7,13 @@
 #' @importFrom DESeq2 DESeqDataSetFromMatrix estimateSizeFactors estimateDispersions
 #'   dispersions dispersionFunction
 #' @importFrom stats median
-calculate_sizes <- function(counts = NULL, s2c, reads_pt = NULL,
+calculate_sizes <- function(counts = NULL, s2c, design, reads_pt = NULL,
                             fc = NULL, single_value = TRUE,
                             min_dispersion = 1e-6) {
   mode(counts) <- "integer"
   dds <- DESeq2::DESeqDataSetFromMatrix(countData = counts,
                                         colData = s2c,
-                                        design = formula("~1"))
+                                        design = design)
   dds <- DESeq2::estimateSizeFactors(dds)
   dds <- suppressMessages(DESeq2::estimateDispersions(dds))
 
