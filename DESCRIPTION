@@ -14,7 +14,7 @@ Imports:
    polyester,
    parallel,
    sleuth,
-   sleuth.comp,
+   sleuthALR,
    stats,
    truncnorm
 License: file LICENSE
