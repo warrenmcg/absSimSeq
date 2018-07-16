@@ -160,6 +160,7 @@ abs_simulation <- function(tpms, counts, s2c, eff_lengths,
 #' @importFrom Biostrings readDNAStringSet
 #' @importFrom biomaRt useMart getBM
 #' @importFrom parallel mclapply detectCores
+#' @importFrom data.table as.data.table
 #' @export
 run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                host = "dec2016.archive.ensembl.org",
@@ -221,8 +222,14 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   
   tpms <- tpms[names(transcripts), sample_index]
   if (sum(tpms) != 10^6) tpms <- tpms / sum(tpms) * 10^6
-  
-  eff_lengths <- unique(sleuth.obj$obs_raw[, c("target_id", "eff_len")])
+
+  eff_lengths <- data.table::as.data.table(
+    sleuth.obj$obs_raw[which(sleuth.obj$obs_raw$sample %in% s2c$sample),
+                       c("target_id", "eff_len")]
+  )
+  eff_lengths <- eff_lengths[, list(eff_len = median(eff_len)), by = target_id]
+  eff_lengths <- as.data.frame(eff_lengths)
+  stopifnot(identical(eff_lengths$target_id, names(tpms)))
   rm(transcripts, sleuth.obj)
   gc()
 

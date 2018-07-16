@@ -10,6 +10,7 @@ Depends: R (>= 3.4.1)
 Imports:
    biomaRt,
    Biostrings,
+   data.table,
    DESeq2,
    dplyr,
    methods,
