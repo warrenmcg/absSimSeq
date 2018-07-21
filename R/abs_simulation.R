@@ -189,7 +189,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   else
     load(sleuth_file)
   tpms <- sleuth::sleuth_to_matrix(sleuth.obj, "obs_raw", "tpm")
-  counts <- sleuth::sleuth_to_matrix(sleuth.obj, "obw_raw", "est_counts")
+  counts <- sleuth::sleuth_to_matrix(sleuth.obj, "obs_raw", "est_counts")
   s2c <- sleuth.obj$sample_to_covariates
   if (!is.null(control_condition)) {
     ctr_samples <- which(s2c$condition == control_condition)
