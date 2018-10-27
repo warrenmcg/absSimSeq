@@ -112,12 +112,20 @@ calculate_consistency <- function(fold_changes = NULL, relative_fc = NULL,
 #'   }
 #' @importFrom sleuthALR alr_transformation
 #' @export
-calculate_rel_consistency <- function(abs_cns, rel_tpms, denom) {
+calculate_rel_consistency <- function(abs_cns, rel_tpms, denom = NULL) {
+  abs_cns <- as.matrix(abs_cns)
+  if(is.null(denom)) {
+    abs_fc <- abs_cns[,2] / abs_cns[,1]
+    no_change_rows <- which(abs_fc == 1)
+    denom <- rownames(abs_cns)[no_change_rows[1]]
+  }
+  rel_tpms <- as.matrix(rel_tpms)
   alr_cns <- sleuthALR::alr_transformation(abs_cns, denom)
   alr_cns_diff <- alr_cns[, 2] - alr_cns[, 1]
   alr_tpms <- sleuthALR::alr_transformation(rel_tpms, denom)
   alr_tpms_diff <- alr_tpms[, 2] - alr_tpms[, 1]
   list(alr_means = alr_cns, alr_diff = alr_cns_diff,
        alr_consistency = calculate_consistency(alr_cns_diff, alr_tpms_diff,
-                                               log_scale = T))
+                                               log_scale = T),
+       denom = denom)
 }

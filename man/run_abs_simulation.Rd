@@ -6,13 +6,13 @@
 \usage{
 run_abs_simulation(fasta_file, sleuth_file, sample_index = 1,
   host = "dec2016.archive.ensembl.org", species = "hsapiens",
-  outdir = ".", num_reps = c(10, 10), denom = "ENST00000396859.5",
-  seed = 1, num_runs = 1, gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3,
-  3), 2), de_probs = 0.1, de_type = "discrete", de_levels = c(1.25,
-  2, 4), dir_probs = 0.5, mean_lib_size = 20 * 10^6,
-  single_value = TRUE, polyester_sim = FALSE,
-  control_condition = NULL, num_cores = 1, include_spikeins = TRUE,
-  spikein_mix = "Mix1", spikein_percent = 0.02)
+  outdir = ".", num_reps = c(10, 10), denom = NULL, seed = 1,
+  num_runs = 1, gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3, 3), 2),
+  de_probs = 0.1, de_type = "discrete", de_levels = c(1.25, 2, 4),
+  dir_probs = 0.5, mean_lib_size = 20 * 10^6, single_value = TRUE,
+  polyester_sim = FALSE, control_condition = NULL, num_cores = 1,
+  include_spikeins = TRUE, spikein_mix = "Mix1",
+  spikein_percent = 0.02)
 }
 \arguments{
 \item{fasta_file, }{a multiFASTA file with the transcripts to be used in
@@ -40,7 +40,9 @@ the default is the archive URL for Ensembl V87.}
 only currently supports two conditions, so this must be length 2.}
 
 \item{denom, }{the name(s) of transcript(s) that will be used as the
-denominator for the ALR transformation}
+denominator for showing how the data will behave after ALR transformation.
+The default is \code{NULL}, which indicates that this function will choose
+the first feature that is simulated to not change as the denominator.}
 
 \item{seed, }{the random seed to be used for reproducibility}
 

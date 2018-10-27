@@ -114,7 +114,9 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' @param num_reps, the number of samples in each condition. Note that this
 #'   only currently supports two conditions, so this must be length 2.
 #' @param denom, the name(s) of transcript(s) that will be used as the
-#'   denominator for the ALR transformation
+#'   denominator for showing how the data will behave after ALR transformation.
+#'   The default is \code{NULL}, which indicates that this function will choose
+#'   the first feature that is simulated to not change as the denominator.
 #' @param seed, the random seed to be used for reproducibility
 #' @param num_runs, the number of simulations to run
 #' @param gc_bias, integer vector of length \code{sum(num_reps)} of the
@@ -197,7 +199,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                host = "dec2016.archive.ensembl.org",
                                species = "hsapiens", outdir = ".",
                                num_reps = c(10,10),
-                               denom = "ENST00000396859.5",
+                               denom = NULL,
                                seed = 1, num_runs = 1,
                                gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3, 3),
                                              2),
@@ -279,13 +281,13 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   stopifnot(identical(eff_lengths$target_id, names(tpms)))
 
   if (include_spikeins) {
-    data(ERCC92_fasta, "absSimSeq")
-    spikein_lengths <- Biostrings::width(ERCC92_fasta)
-    spikein_df <- data.frame(target_id = names(ERCC92_fasta),
+    data(ERCC92_seqs, package = "absSimSeq")
+    spikein_lengths <- Biostrings::width(ERCC92_seqs)
+    spikein_df <- data.frame(target_id = names(ERCC92_seqs),
                              eff_len = spikein_lengths)
     eff_lengths <- rbind(eff_lengths, spikein_df)
 
-    transcripts <- c(transcripts, ERCC92_fasta)
+    transcripts <- c(transcripts, ERCC92_seqs)
     fasta_dir <- dirname(fasta_file)
     fasta_file <- file.path(fasta_dir, "temp.fa")
     Biostrings::writeXStringSet(transcripts, fasta_file)

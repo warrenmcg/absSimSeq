@@ -4,7 +4,7 @@
 \alias{calculate_rel_consistency}
 \title{Calculate Consistency of Logratio Data}
 \usage{
-calculate_rel_consistency(abs_cns, rel_tpms, denom)
+calculate_rel_consistency(abs_cns, rel_tpms, denom = NULL)
 }
 \arguments{
 \item{abs_cns, }{an N x 2 matrix or data frame with expected
