@@ -157,8 +157,6 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #'   Note that if this is specified, DESeq2 will estimate dispersions using an
 #'   intercept only model (~1), whereas if it is left \code{NULL}, the full
 #'   formula from the sleuth object will be used (obj$full_formula).
-#' @param sleuth_save if \code{TRUE}, the sleuth object was saved using
-#'   'sleuth_save' and will be loaded using 'sleuth_load'.
 #' @param num_cores the number of cores to be used to run parallel simulations.
 #'   the default is to use just one.
 #' @param include_spikeins if \code{TRUE}, will add spike-ins to the simulated
@@ -210,14 +208,16 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                mean_lib_size = 20*10^6,
                                single_value = TRUE,
                                polyester_sim = FALSE, control_condition = NULL,
-                               sleuth_save = FALSE, num_cores = 1,
+                               num_cores = 1,
                                include_spikeins = TRUE,
                                spikein_mix = "Mix1", spikein_percent = 0.02) {
   message("loading sleuth results object")
-  if (sleuth_save)
-    sleuth.obj <- sleuth::sleuth_load(sleuth_file)
-  else
-    load(sleuth_file)
+  sleuth.obj <- try(sleuth::sleuth_load(sleuth_file))
+  if (is(sleuth.obj, "try-error")) {
+    stop("The sleuth object could not be loaded. Here is the error message: ",
+         print(sleuth.obj))
+  }
+
   tpms <- sleuth::sleuth_to_matrix(sleuth.obj, "obs_raw", "tpm")
   counts <- sleuth::sleuth_to_matrix(sleuth.obj, "obs_raw", "est_counts")
   s2c <- sleuth.obj$sample_to_covariates
