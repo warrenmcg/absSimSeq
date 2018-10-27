@@ -135,12 +135,10 @@ generate_abs_changes <- function(tpms = NULL,
 
   ## the absolute data is combining the control and experimental numbers
   ## these represent the "mean" values for each transcript in each condition
-  abs_samples <- cbind(ctr_copy_numbers, exp_copy_numbers)
+  abs_samples <- as.matrix(cbind(ctr_copy_numbers, exp_copy_numbers))
   ## by renormalizing the copy numbers to TPMs, it becomes
   ## relative/compositional data again
-  relative_samples <- apply(abs_samples, 2, function(x) {
-    x / sum(x) * 10^6
-  })
+  relative_samples <- sweep(abs_samples, 2, colSums(abs_samples), "/") * 10^6
   colnames(relative_samples) <- c("ctr_tpms", "exp_tpms")
   ## calculate fold changes in the classic way by comparing the changes
   ## seen between the relative TPMs
@@ -164,7 +162,7 @@ add_spikeins <- function(results, spikein_mix = "Mix1", spikein_percent = 0.02) 
   curr_copy_nums <- results$copy_numbers_per_cell
   actual_percent <- (1 / (1 - spikein_percent)) - 1
 
-  data(ERCC92_data, "absSimSeq")
+  data(ERCC92_data, package = "absSimSeq")
 
   if (length(spikein_mix) > 2) {
     stop("'spikein_mix' has more than two elements. 'absSimSeq' currently only supports two condition experiments")
@@ -174,7 +172,7 @@ add_spikeins <- function(results, spikein_mix = "Mix1", spikein_percent = 0.02) 
     spike_cols <- rep(paste0(spikein_mix, "_molar_conc"), 2)
   }
 
-  spikein_copy_nums <- ERCC92_data[, spike_cols]
+  spikein_copy_nums <- as.matrix(ERCC92_data[, spike_cols])
   colnames(spikein_copy_nums) <- colnames(curr_copy_nums)
 
   ratio <- actual_percent * sum(curr_copy_nums[,1]) / sum(spikein_copy_nums[,1])
@@ -184,7 +182,7 @@ add_spikeins <- function(results, spikein_mix = "Mix1", spikein_percent = 0.02) 
   new_fold_changes <- new_copy_nums[,2] / new_copy_nums[,1]
   new_fold_changes[is.na(new_fold_changes)] <- 1
 
-  new_tpms <- sweep(new_copy_nums, 2, colSums(new_tpms), "/")
+  new_tpms <- sweep(new_copy_nums, 2, colSums(new_copy_nums), "/") * 10^6
   new_rel_fcs <- new_tpms[,2] / new_tpms[,1]
   new_rel_fcs[is.na(new_rel_fcs)] <- 1
 

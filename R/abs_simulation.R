@@ -40,6 +40,7 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
                                            eff_lengths[,2],
                                            mean_lib_size)
   adj_rel_fc <- expected_reads$adj_fold_changes
+  expected_reads <- expected_reads$expected_reads
   polyester_fc <- expected_reads$fold_changes
   polyester_fc[is.na(polyester_fc)] <- 1
   polyester_fc <- matrix(c(rep(1, length(polyester_fc)), polyester_fc),
@@ -47,13 +48,13 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
   consistent <- calculate_consistency(results$abs_fold_changes,
                                       adj_rel_fc)
   sizes <- NULL
-  reads_per_transcript <- expected_reads$expected_reads[, 1]
+  reads_per_transcript <- expected_reads[, 1]
   message("calculating the sizes using DESeq2 dispersion estimation")
   deseq_res <- calculate_sizes(counts, s2c, design, reads_per_transcript,
                            polyester_fc[, 2], single_value = single_value)
 
   if (include_spikeins) {
-    spikein_sizes <- calculate_spikein_sizes(deseq_res, expected_reads$expected_reads)
+    spikein_sizes <- calculate_spikein_sizes(deseq_res, expected_reads)
     sizes <- c(deseq_res$sizes, spikein_sizes)
   } else {
     sizes <- deseq_res$sizes
@@ -81,7 +82,8 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
   }
   return(append(results,
                 values = list(sizes = sizes,
-                              expected_reads = expected_reads$expected_reads,
+                              eff_lengths = eff_lengths,
+                              expected_reads = expected_reads,
                               adjusted_consistent_changes = consistent,
                               adjusted_fold_changes = adj_rel_fc)))
 }

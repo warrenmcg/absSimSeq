@@ -27,7 +27,11 @@ calculate_sizes <- function(counts = NULL, s2c, design, reads_pt = NULL,
     basemeans <- matrix(c(reads_pt, reads_pt), nrow=length(reads_pt))
     basemeans[, 2] <- basemeans[, 1] * fc
     dispersions <- func(basemeans)
+    rm(func)
   }
+  rm(dds)
+  gc()
+
   disp_filt <- dispersions > min_dispersion
   disp_filt <- ifelse(is.na(disp_filt), FALSE, disp_filt)
   if (is.null(dim(dispersions))) {
@@ -48,9 +52,10 @@ calculate_sizes <- function(counts = NULL, s2c, design, reads_pt = NULL,
   }  
   # size (i.e. r) = 1 / dispersion
   sizes <- 1 / dispersions
-  list(sizes, means = basemeans)
+  list(sizes = sizes, means = basemeans)
 }
 
+#' @importFrom stats median
 calculate_spikein_sizes <- function(deseq_res, reads_pt, func = median) {
   stopifnot(!is.null(dim(reads_pt)))
   spikein_means <- rowMeans(reads_pt)[grepl("^ERCC", rownames(reads_pt))]
@@ -70,6 +75,7 @@ calculate_spikein_sizes <- function(deseq_res, reads_pt, func = median) {
     matched_sizes <- deseq_res$sizes[matches]
     func(matched_sizes)
   })
+  rm(func)
   spike_sizes
 }
 
