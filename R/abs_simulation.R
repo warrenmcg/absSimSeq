@@ -61,7 +61,7 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
   }
 
   sizes[which(is.na(sizes) | sizes==0)] <- 1e-22
-  rm(tpms, counts, deseq_res)
+  rm(design, new_tpms, tpms, counts, deseq_res)
   gc()
   if (polyester_sim) {
     lib_sizes <- rnorm(sum(num_reps), 1, sd = 0.05)
@@ -230,7 +230,10 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     ctr_samples <- 1:nrow(s2c)
     design <- sleuth.obj$full_formula
   }
-  
+  ## formulas capture enclosing environment when assigned
+  ## so giving it a new environment prevents that memory leak
+  environment(design) <- new.env()
+
   message("loading transcripts from FASTA file")
   transcripts <- Biostrings::readDNAStringSet(fasta_file)
   if(nchar(names(transcripts)[1]) > 15) {
@@ -312,7 +315,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                              single_value = single_value,
                              polyester_sim = polyester_sim)
     result
-  }, mc.cores = min(parallel::detectCores()-2, num_runs, num_cores))
+  }, mc.cores = min(parallel::detectCores()-1, num_runs, num_cores))
   checks <- sapply(results, function(x) class(x) == "try-error")
   if(any(checks)) {
     failed_runs <- results[checks]
@@ -327,7 +330,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
     calculate_rel_consistency(results[[i]]$copy_numbers_per_cell,
                               results[[i]]$transcript_abundances,
                               denom = denom)
-  }, mc.cores = min(parallel::detectCores()-2, num_runs, num_cores))
+  }, mc.cores = min(parallel::detectCores()-1, num_runs, num_cores))
   checks <- sapply(alr_data, function(x) class(x) == "try-error")
   if(any(checks)) {
     failed_runs <- alr_data[checks]
