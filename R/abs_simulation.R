@@ -250,8 +250,8 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
   results <- parallel::mclapply(seq(num_runs), function(i) {
     run_num <- sprintf('%02d', i)
     message(paste0("running run #", run_num))
-    dir.create(file.path(outdir, paste0("run", run_num, "_fasta")), showWarnings = F)
-    real_outdir <- file.path(outdir, paste0("run", run_num, "_fasta"))
+    dir.create(file.path(outdir, paste0("run", run_num)), showWarnings = F)
+    real_outdir <- file.path(outdir, paste0("run", run_num))
     result <- abs_simulation(tpms = tpms, counts = counts, s2c = s2c,
                              design = design, eff_lengths = eff_lengths,
                              fasta_file = fasta_file, host = host,
