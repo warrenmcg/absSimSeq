@@ -5,7 +5,6 @@
 \title{Run a copy number simulation}
 \usage{
 run_abs_simulation(fasta_file, sleuth_file, sample_index = "mean",
-  host = "dec2016.archive.ensembl.org", species = "hsapiens",
   outdir = ".", num_reps = c(10, 10), denom = NULL, seed = 1,
   num_runs = 1, gc_bias = NULL, de_probs = 0.1, de_type = "normal",
   de_levels = c(1.25, 2, 4), dir_probs = 0.5, mean_lib_size = 20 *
@@ -26,12 +25,6 @@ sleuth object is expected to be 'sleuth.obj'.}
 as the starting point for the simulation? You may use a number or string,
 as long as it is a valid column index for the dataset. If "mean" is given,
 the default, then the mean of the control samples will be used.}
-
-\item{host, }{the URL to be used to download annotations using biomaRt.
-the default is the archive URL for Ensembl V87.}
-
-\item{species, }{the abbreviated latin name of the species (default 
-"hsapiens"); used by biomaRt to get the annotations}
 
 \item{outdir, }{where should the simulated reads be written to?}
 

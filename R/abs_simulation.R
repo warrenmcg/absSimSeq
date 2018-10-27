@@ -1,8 +1,7 @@
 # This function is the real meat of the simulation code
 #' @importFrom polyester simulate_experiment
 abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
-                           host = "dec2016.archive.ensembl.org",
-                           species = "hsapiens", outdir = ".",
+                           outdir = ".",
                            num_reps = c(10, 10),
                            gc_bias = NULL,
                            de_prob = 0.01,
@@ -118,10 +117,6 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #'   as the starting point for the simulation? You may use a number or string,
 #'   as long as it is a valid column index for the dataset. If "mean" is given,
 #'   the default, then the mean of the control samples will be used.
-#' @param host, the URL to be used to download annotations using biomaRt.
-#'   the default is the archive URL for Ensembl V87.
-#' @param species, the abbreviated latin name of the species (default 
-#'   "hsapiens"); used by biomaRt to get the annotations
 #' @param outdir, where should the simulated reads be written to?
 #' @param num_reps, the number of samples in each condition. Note that this
 #'   only currently supports two conditions, so this must be length 2.
@@ -209,8 +204,7 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' @importFrom utils data
 #' @export
 run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = "mean",
-                               host = "dec2016.archive.ensembl.org",
-                               species = "hsapiens", outdir = ".",
+                               outdir = ".",
                                num_reps = c(10,10),
                                denom = NULL,
                                seed = 1, num_runs = 1,
@@ -250,29 +244,22 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = "mean",
 
   message("loading transcripts from FASTA file")
   transcripts <- Biostrings::readDNAStringSet(fasta_file)
-  if(nchar(names(transcripts)[1]) > 15) {
-    if (grepl(" ", names(transcripts)[1], fixed = T)) {
-      names(transcripts) <- sapply(names(transcripts), function(x) {
-        strsplit(x, " ", fixed = T)[[1]][2]
-      })
-    }
-  } else {
-    message("loading annotations from biomaRt to get version numbers")
-    mart <- biomaRt::useMart("ENSEMBL_MART_ENSEMBL",
-                             host = host,
-                             dataset = paste(species, "gene_ensembl", sep = "_"))
-    table <- biomaRt::getBM(mart = mart,
-                            attributes = c("ensembl_transcript_id",
-                                           "transcript_version"))
-    table$target_id <- paste(table$ensembl_transcript_id,
-                             table$transcript_version,
-                             sep = ".")
-    table$transcript_version <- NULL
-    new_names <- table[match(names(transcripts), table$ensembl_transcript_id),
-                       "target_id"]
-    names(transcripts) <- new_names
+  # Take the first ID if there is metadata present
+  # The single space is used in Ensembl FASTA files
+  if(grepl(" ", names(transcripts)[1], fixed = TRUE)) {
+    names(transcripts) <- sapply(names(transcripts), function(x) {
+      strsplit(x, " ", fixed = T)[[1]][1]
+    })
+  # The '|' character is used in NCBI and Gencode FASTA files
+  } else if(grepl("|", names(transcripts)[1], fixed = TRUE)) {
+    names(transcripts) <- sapply(names(transcripts), function(x) {
+      strsplit(x, "|", fixed = T)[[1]][1]
+    })
   }
-  stopifnot(all(grepl("^ENS", names(transcripts))))
+
+  if (!all(rownames(tpms) %in% names(transcripts))) {
+    stop("the names of the FASTA file do not match the target_ids from the sleuth object")
+  }
 
   transcripts <- transcripts[rownames(tpms)]
 
@@ -316,8 +303,8 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = "mean",
     real_outdir <- file.path(outdir, paste0("run", run_num))
     result <- abs_simulation(tpms = tpms, counts = counts, s2c = s2c,
                              design = design, eff_lengths = eff_lengths,
-                             fasta_file = fasta_file, host = host,
-                             species = species, outdir = real_outdir,
+                             fasta_file = fasta_file,
+                             outdir = real_outdir,
                              num_reps = num_reps, gc_bias = gc_bias,
                              de_prob = de_probs[i], de_levels = de_levels,
                              de_type = de_type, dir_prob = dir_probs[i],
