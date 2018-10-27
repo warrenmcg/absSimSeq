@@ -110,14 +110,14 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' 
 #' @param fasta_file, a multiFASTA file with the transcripts to be used in
 #'   the simulation (required for polyester)
-#' @param sleuth_file, a R-Data file containing the sleuth object containing
+#' @param sleuth_file, an R-Data file containing the sleuth object containing
 #'   results from a real experiment. If 'sleuth_save' is \code{FALSE}, the 
 #'   sleuth object will be loaded using \code{load}, and the name of the
 #'   sleuth object is expected to be 'sleuth.obj'.
 #' @param sample_index, which sample from the real dataset should be used
 #'   as the starting point for the simulation? You may use a number or string,
 #'   as long as it is a valid column index for the dataset. If "mean" is given,
-#'   then the mean of the control samples will be used.
+#'   the default, then the mean of the control samples will be used.
 #' @param host, the URL to be used to download annotations using biomaRt.
 #'   the default is the archive URL for Ensembl V87.
 #' @param species, the abbreviated latin name of the species (default 
@@ -139,7 +139,7 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' @param de_probs, vector of same length as \code{num_runs}, with
 #'   numbers between 0 and 1 describing the probability of differential
 #'   expression for each simulation
-#' @param de_type, either "discrete" or "normal" to indicate using
+#' @param de_type, either "discrete" or "normal" (the default) to indicate using
 #'   discrete levels of differential expression, or to used a truncated
 #'   normal for a continuum of differential expression. The levels of
 #'   discrete DE, or the parameters for the truncated normal, are
@@ -208,7 +208,7 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' @importFrom data.table as.data.table
 #' @importFrom utils data
 #' @export
-run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
+run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = "mean",
                                host = "dec2016.archive.ensembl.org",
                                species = "hsapiens", outdir = ".",
                                num_reps = c(10,10),
@@ -216,7 +216,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                seed = 1, num_runs = 1,
                                gc_bias = NULL,
                                de_probs = 0.1,
-                               de_type = "discrete",
+                               de_type = "normal",
                                de_levels = c(1.25, 2, 4),
                                dir_probs = 0.5,
                                mean_lib_size = 20*10^6,

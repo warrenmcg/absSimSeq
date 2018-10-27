@@ -4,21 +4,20 @@
 \alias{run_abs_simulation}
 \title{Run a copy number simulation}
 \usage{
-run_abs_simulation(fasta_file, sleuth_file, sample_index = 1,
+run_abs_simulation(fasta_file, sleuth_file, sample_index = "mean",
   host = "dec2016.archive.ensembl.org", species = "hsapiens",
   outdir = ".", num_reps = c(10, 10), denom = NULL, seed = 1,
-  num_runs = 1, gc_bias = NULL, de_probs = 0.1,
-  de_type = "discrete", de_levels = c(1.25, 2, 4), dir_probs = 0.5,
-  mean_lib_size = 20 * 10^6, single_value = TRUE,
-  polyester_sim = FALSE, control_condition = NULL, num_cores = 1,
-  include_spikeins = TRUE, spikein_mix = "Mix1",
-  spikein_percent = 0.02)
+  num_runs = 1, gc_bias = NULL, de_probs = 0.1, de_type = "normal",
+  de_levels = c(1.25, 2, 4), dir_probs = 0.5, mean_lib_size = 20 *
+  10^6, single_value = TRUE, polyester_sim = FALSE,
+  control_condition = NULL, num_cores = 1, include_spikeins = TRUE,
+  spikein_mix = "Mix1", spikein_percent = 0.02)
 }
 \arguments{
 \item{fasta_file, }{a multiFASTA file with the transcripts to be used in
 the simulation (required for polyester)}
 
-\item{sleuth_file, }{a R-Data file containing the sleuth object containing
+\item{sleuth_file, }{an R-Data file containing the sleuth object containing
 results from a real experiment. If 'sleuth_save' is \code{FALSE}, the 
 sleuth object will be loaded using \code{load}, and the name of the
 sleuth object is expected to be 'sleuth.obj'.}
@@ -26,7 +25,7 @@ sleuth object is expected to be 'sleuth.obj'.}
 \item{sample_index, }{which sample from the real dataset should be used
 as the starting point for the simulation? You may use a number or string,
 as long as it is a valid column index for the dataset. If "mean" is given,
-then the mean of the control samples will be used.}
+the default, then the mean of the control samples will be used.}
 
 \item{host, }{the URL to be used to download annotations using biomaRt.
 the default is the archive URL for Ensembl V87.}
@@ -58,7 +57,7 @@ which means that all samples will be set to 0 (i.e. no bias).}
 numbers between 0 and 1 describing the probability of differential
 expression for each simulation}
 
-\item{de_type, }{either "discrete" or "normal" to indicate using
+\item{de_type, }{either "discrete" or "normal" (the default) to indicate using
 discrete levels of differential expression, or to used a truncated
 normal for a continuum of differential expression. The levels of
 discrete DE, or the parameters for the truncated normal, are
