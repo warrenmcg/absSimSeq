@@ -7,9 +7,9 @@
 run_abs_simulation(fasta_file, sleuth_file, sample_index = 1,
   host = "dec2016.archive.ensembl.org", species = "hsapiens",
   outdir = ".", num_reps = c(10, 10), denom = NULL, seed = 1,
-  num_runs = 1, gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3, 3), 2),
-  de_probs = 0.1, de_type = "discrete", de_levels = c(1.25, 2, 4),
-  dir_probs = 0.5, mean_lib_size = 20 * 10^6, single_value = TRUE,
+  num_runs = 1, gc_bias = NULL, de_probs = 0.1,
+  de_type = "discrete", de_levels = c(1.25, 2, 4), dir_probs = 0.5,
+  mean_lib_size = 20 * 10^6, single_value = TRUE,
   polyester_sim = FALSE, control_condition = NULL, num_cores = 1,
   include_spikeins = TRUE, spikein_mix = "Mix1",
   spikein_percent = 0.02)
@@ -51,7 +51,8 @@ the first feature that is simulated to not change as the denominator.}
 \item{gc_bias, }{integer vector of length \code{sum(num_reps)} of the
 GC bias to be used by polyester. Only numbers between 0 and 7.
 See ?polyester::simulate_experiment under "gcbias" in the 
-Details section for more information.}
+Details section for more information. The default is \code{NULL},
+which means that all samples will be set to 0 (i.e. no bias).}
 
 \item{de_probs, }{vector of same length as \code{num_runs}, with
 numbers between 0 and 1 describing the probability of differential

@@ -4,7 +4,7 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
                            host = "dec2016.archive.ensembl.org",
                            species = "hsapiens", outdir = ".",
                            num_reps = c(10, 10),
-                           gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3, 3), 2),
+                           gc_bias = NULL,
                            de_prob = 0.01,
                            de_levels = c(1.25, 2, 4),
                            de_type = "discrete",
@@ -16,6 +16,18 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
                            include_spikeins = TRUE,
                            spikein_mix = "Mix1",
                            spikein_percent = 0.02) {
+  if(is.null(gc_bias)) {
+    gc_bias <- rep(0, sum(num_reps))
+  } else if(length(gc_bias) != sum(num_reps)) {
+    stop("'gc_bias' must be the same length as the total number of samples: ",
+         sum(num_reps), ".")
+  } else if(!is.numeric(gc_bias) || !all(gc_bias >= 0 & gc_bias <= 7)) {
+    stop("'gc_bias' must be a vector of integers, from 0 (no bias) to 7, ",
+         "the same length as the total number of samples: ", sum(num_reps), ".")
+  } else {
+    gc_bias <- as.integer(gc_bias)
+  }
+
   message("generating mean absolute copy numbers and relative TPMs")
   results <- generate_abs_changes(tpms = tpms,
                                   de_prob = de_prob,
@@ -122,7 +134,8 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' @param gc_bias, integer vector of length \code{sum(num_reps)} of the
 #'   GC bias to be used by polyester. Only numbers between 0 and 7.
 #'   See ?polyester::simulate_experiment under "gcbias" in the 
-#'   Details section for more information.
+#'   Details section for more information. The default is \code{NULL},
+#'   which means that all samples will be set to 0 (i.e. no bias).
 #' @param de_probs, vector of same length as \code{num_runs}, with
 #'   numbers between 0 and 1 describing the probability of differential
 #'   expression for each simulation
@@ -201,8 +214,7 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = 1,
                                num_reps = c(10,10),
                                denom = NULL,
                                seed = 1, num_runs = 1,
-                               gc_bias = rep(c(0, 0, 1, 1, 1, 2, 2, 3, 3, 3),
-                                             2),
+                               gc_bias = NULL,
                                de_probs = 0.1,
                                de_type = "discrete",
                                de_levels = c(1.25, 2, 4),
