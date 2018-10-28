@@ -1,0 +1,127 @@
+---
+title. "Simulating RNA-Seq Compositional Data with absSimSeq"
+author: "Warren McGee"
+date: "`r format(Sys.Date(), '%m/%d/%Y')`"
+abstract: >
+  absSimSeq package version: `r packageVersion("absSimSeq")`
+output:
+  rmarkdown::html_vignette
+  highlight: pygments
+  toc: true
+  fig_width: 5
+bibliography: library.bib
+vignette: >
+  %\VignetteIndexEntry{Simulating RNA-Seq Compositional Data with absSimSeq}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  \usepackage[utf8]{inputenc}
+---
+
+# Introduction: Why do we need another RNA-Seq simulator?
+
+There are two main simulators to generate RNA-Seq data: the R package `polyester` and
+the stand-alone RSEM package, which has the `rsem-simulate-reads` program.
+
+The two main pieces of information necessary to run a simulation are (A) a set of sequences
+and (B) information about how many reads to simulate from each group. Current pipelines
+have set up protocols for estimating the reads per feature from real data and then simulating
+differential expression between groups.
+
+The problem arises where the simulation assumes that RNA-Seq is considered count data rather than
+compositional data. In a typical RNA-Seq experiment, the number of fragments sequenced in each sample
+(i.e. the "depth of sequencing") is kept as consistent as possible across all samples. Yet, depending
+on the combination simulated fold changes and initial count estimates, there is a virtual guarantee
+that there will be a systematic bias in the total expected reads per sample between the two groups
+before the simulation occurs.
+
+Take for example the independent effect simulation performed in the original sleuth paper [@Pimentel2017].
+In this experiment, they simulated 20% (~13K) of filtered transcripts as differentially
+expressed, with an equal probability of being up- or down-regulated. When you examine the total counts per
+sample in Supplementary Table 2, one can see that there is a systematic bias present between conditions,
+where the "B" condition has ~15-20% more counts on average than the "A" condition. This results in the
+library depth being perfectly confounded with the experimental condition.
+
+A second example of a more subtle bias can be observed in a recent pipeline paper [@Love2018]. In this
+experiment, they simulated ~20% (~9K) of expressed transcripts as differentially expressed (DTE), with
+some also counting for differential gene expression (DGE) and differential transcript usage (DTU).
+Carefully reviewing the processed data (available for download at https://doi.org/10.5281/zenodo.1410443,
+contained in the 'mikelove-swimdown-216a1dd/simulate/data/simulate.rda' RData file), there are ~12% more
+TPMs (~6% more counts) in the second condition versus the first.
+
+In both of these simulations, a moderate percentage of expressed transcripts are differentially expressed.
+However, there are a few well-documented examples of extreme biological change: (A) comparing cancer cells to
+control cells with many up-regulated transcripts ([@Loven2012]), and (B) comparing nitrogen-starved yeast cells
+to cells grown in control media with many down-regulated transcripts ([@Marguerat2012]; a re-analysis clearly
+demonstrating the problem using standard analysis on this data is found at [@Lovell2015]). If one attempts to
+simulate these or other scenarios, the systematic bias would yield unrealistic systematic differences in library
+depths between groups.
+
+The reason for the observed systematic biases is due to the data being treated as count data rather than
+compositional data. The `absSimSeq` package seeks to solve this problem by starting from copy numbers per cell,
+simulating fold changes on those copy numbers, and then applying compositional principles to yield TPMs and
+expected fragments per transcript. It then uses `polyester` to do the underlying simulation.
+This protocol allows the user to simulate any combination of expression values and fold changes, while still
+being able to simulate equal library sizes across all samples.
+
+This vignette will go through the pipeline for running a simulation using `absSimSeq`. For more details about
+compositional data analysis, please see [@Quinn2018] and our forthcoming preprint.
+
+### An Important Note: Custom Polyester Installation
+
+The current stable release for the `polyester` package has three important limitations:
+1. It does not allow for parallelization to take full advantage of machine resources
+2. Its algorithm for introducing error is very slow, taking several hours to generate one sample
+3. It does not shuffle fragments before writing to file, preventing the use of most alignment tools,
+which expect a random order of fragments.
+
+These limitations have been addressed in a forked version of polyester which is available
+using the following installation code:
+```{r polyester, eval = FALSE, echo = TRUE}
+devtools::install_github('warrenmcg/polyester')
+```
+
+This is not required to use absSimSeq, but will simplify and speed up the simulation protocol.
+
+*Note*: as of this writing, this forked version has not been incorporated into the stable release,
+and is provided without guarantee, so use your own discretion when using it.
+
+# Quick Overview
+
+## Load starting data from [`yeastStarvationData`](https://github.com/warrenmcg/yeastStarvationData)
+
+To illustrate how to use `absSimSeq`, we will use data from Marguerat et al. [@Marguerat2012] in fission
+yeast (Schizosaccharomyces pombe). The transcriptome and kallisto results are in the
+[`yeastStarvationData`](https://github.com/warrenmcg/yeastStarvationData) package. Load it up using the
+following code:
+
+```{r data, eval = FALSE, echo = TRUE}
+library(yeastStarvationData)
+fasta_file <- system.file("extdata", "S.pombe.all.fa.gz",
+                          package = "yeastStarvationData")
+data(yeastS2C)
+data(yeastAnnos)
+kal_dirs <- list.dirs(system.file("extdata", package = "yeastStarvationData"))[-1]
+yeastS2C$path <- kal_dirs
+yeast_so <- sleuth::sleuth_prep(yeastS2C, ~condition, target_mapping = yeastAnnos)
+```
+
+To launch an absSimSeq simulation, two main inputs are required:
+A. either an RDS file storing a sleuth object (saved using `sleuth_save`) or 
+the sleuth object itself
+B. a FASTA sequence with the desired features from which to simulate
+
+All of the target_ids from the sleuth_file must match headers from FASTA file (with exceptions
+for sequences downloaded with "|" or " " used as separators for metadata).
+
+To run an absSimSeq, run the following command:
+```
+sim_res <- run_abs_simulation(yeast_so, fasta_file = fasta_file)
+```
+
+# Detailed Pipeline
+
+Coming soon!
+
+# Running benchmarks on simulated data using `mamabear`
+
+Coming soon!
