@@ -177,7 +177,7 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' @param spikein_percent what percent of the total copy numbers in the control
 #'   condition should be spike-in controls? The default is 2\%.
 #'
-#' @return list with two members:
+#' @return returns invisibly a list with three members:
 #'   \itemize{
 #'     \item results: a list of lists, one entry for each simulation. Each
 #'       simulation's results has the following entries:
@@ -191,9 +191,10 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #'         \item adjusted_fold_changes: the fold changes perceived after normalization
 #'           using the DESeq procedure
 #'       }
-#'     \item alr_data: a list of lists, one entry for each simulation. Each
+#'     \item alr_results: a list of lists, one entry for each simulation. Each
 #'       simulation's alr_data list contains the results from
 #'       \code{calculate_rel_consistency}
+#'     \item params: a list of the parameters used for this simulation
 #'   }
 #' @importFrom sleuth sleuth_load sleuth_to_matrix
 #' @importFrom Biostrings readDNAStringSet width writeXStringSet
@@ -349,7 +350,20 @@ run_abs_simulation <- function(sleuth, fasta_file, sample_index = "mean",
   if (include_spikeins) {
     file.remove(fasta_file)
   }
-  return(list(results = results, alr_data = alr_data))
+
+  parameters <- list(seed = seed, sample_index = sample_index,
+                     num_reps = num_reps, gc_bias = gc_bias,
+                     de_probs = de_probs, de_type = de_type,
+                     de_levels = de_levels, dir_probs = dir_probs,
+                     mean_lib_size = mean_lib_size)
+  if (include_spikeins) {
+    parameters$spikein_mix <- spikein_mix
+    parameters$spikein_percent <- spikein_percent
+  } else {
+    parameters$spikein_mix <- parameters$spikein_percent <- NA
+  }
+
+  invisible(list(results = results, alr_results = alr_data, params = parameters))
 }
 
 #' Summarize a group of copy number simulations

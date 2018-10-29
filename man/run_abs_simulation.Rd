@@ -104,7 +104,7 @@ a character vector containing a mix for each condition. The default is
 condition should be spike-in controls? The default is 2\%.}
 }
 \value{
-list with two members:
+returns invisibly a list with three members:
   \itemize{
     \item results: a list of lists, one entry for each simulation. Each
       simulation's results has the following entries:
@@ -118,9 +118,10 @@ list with two members:
         \item adjusted_fold_changes: the fold changes perceived after normalization
           using the DESeq procedure
       }
-    \item alr_data: a list of lists, one entry for each simulation. Each
+    \item alr_results: a list of lists, one entry for each simulation. Each
       simulation's alr_data list contains the results from
       \code{calculate_rel_consistency}
+    \item params: a list of the parameters used for this simulation
   }
 }
 \description{
