@@ -1,7 +1,7 @@
 # absSimSeq
 
-**NOTE**: this tool is in alpha stage of development. If you choose to try it, any constructive feedback is
-greatly appreciated! A vignette is coming soon!
+**NOTE**: A preprint is coming soon! If you choose to try this, any constructive feedback is
+greatly appreciated!
 
 This package simulates RNA-Seq experiments with an explicit definition of the 
 absolute RNA counts.
@@ -19,24 +19,6 @@ The basic workflow is the following:
 5) Convert TPM values to expected reads per transcript
 6) Simulate reads using the *polyester* ([bioconductor page](http://bioconductor.org/packages/release/bioc/html/polyester.html)) package.
 
-## Introduction to Simple Command
+## Usage
 
-To run the simulation based on copy numbers, run the following command:
-
-```
-final_results <- run_abs_simulation(fasta_file, sleuth_file, sample_index,
-                                    outdir = outdir, denom = denom,
-                                    num_runs = num_runs, num_reps = num_reps,
-                                    de_probs = de_probs, dir_probs = dir_probs,
-                                    polyester_sim = T, gc_bias = gc_bias,
-                                    num_cores = num_runs)
-```
-
-After you run `kallisto` and then `sleuth` on the simulations, you can then 
-run the following command to compare the results to the truth:
-
-```
-comparisons <- compare_sim_to_truth(final_results, sleuth_dir = outdir,
-                                    de_probs = de_probs, dir_probs = dir_probs,
-                                    num_reps = num_reps)
-```
+See the [vignette](https://github.com/warrenmcg/absSimSeq/blob/master/vignettes/absSimSeq.Rmd) for full details!
