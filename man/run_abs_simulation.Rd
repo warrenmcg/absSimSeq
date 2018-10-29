@@ -4,7 +4,7 @@
 \alias{run_abs_simulation}
 \title{Run a copy number simulation}
 \usage{
-run_abs_simulation(fasta_file, sleuth_file, sample_index = "mean",
+run_abs_simulation(sleuth, fasta_file, sample_index = "mean",
   outdir = ".", num_reps = c(10, 10), denom = NULL, seed = 1,
   num_runs = 1, gc_bias = NULL, de_probs = 0.1, de_type = "normal",
   de_levels = c(1.25, 2, 4), dir_probs = 0.5, mean_lib_size = 20 *
@@ -13,13 +13,12 @@ run_abs_simulation(fasta_file, sleuth_file, sample_index = "mean",
   spikein_mix = "Mix1", spikein_percent = 0.02)
 }
 \arguments{
+\item{sleuth, }{a sleuth object or a character string with an R-Data file
+containing a sleuth object saved using 'sleuth_save'. This object contains
+results from a real experiment.}
+
 \item{fasta_file, }{a multiFASTA file with the transcripts to be used in
 the simulation (required for polyester)}
-
-\item{sleuth_file, }{an R-Data file containing the sleuth object containing
-results from a real experiment. If 'sleuth_save' is \code{FALSE}, the 
-sleuth object will be loaded using \code{load}, and the name of the
-sleuth object is expected to be 'sleuth.obj'.}
 
 \item{sample_index, }{which sample from the real dataset should be used
 as the starting point for the simulation? You may use a number or string,

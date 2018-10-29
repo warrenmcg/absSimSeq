@@ -107,12 +107,11 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' experiment using the copy numbers, those numbers are converted into
 #' expected reads to be used for a polyester simulation.
 #' 
+#' @param sleuth, a sleuth object or a character string with an R-Data file
+#'   containing a sleuth object saved using 'sleuth_save'. This object contains
+#'   results from a real experiment.
 #' @param fasta_file, a multiFASTA file with the transcripts to be used in
 #'   the simulation (required for polyester)
-#' @param sleuth_file, an R-Data file containing the sleuth object containing
-#'   results from a real experiment. If 'sleuth_save' is \code{FALSE}, the 
-#'   sleuth object will be loaded using \code{load}, and the name of the
-#'   sleuth object is expected to be 'sleuth.obj'.
 #' @param sample_index, which sample from the real dataset should be used
 #'   as the starting point for the simulation? You may use a number or string,
 #'   as long as it is a valid column index for the dataset. If "mean" is given,
@@ -203,7 +202,7 @@ abs_simulation <- function(tpms, counts, s2c, design, eff_lengths, fasta_file,
 #' @importFrom data.table as.data.table
 #' @importFrom utils data
 #' @export
-run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = "mean",
+run_abs_simulation <- function(sleuth, fasta_file, sample_index = "mean",
                                outdir = ".",
                                num_reps = c(10,10),
                                denom = NULL,
@@ -219,11 +218,18 @@ run_abs_simulation <- function(fasta_file, sleuth_file, sample_index = "mean",
                                num_cores = 1,
                                include_spikeins = TRUE,
                                spikein_mix = "Mix1", spikein_percent = 0.02) {
-  message("loading sleuth results object")
-  sleuth.obj <- try(sleuth::sleuth_load(sleuth_file))
-  if (is(sleuth.obj, "try-error")) {
-    stop("The sleuth object could not be loaded. Here is the error message: ",
-         print(sleuth.obj))
+  if (is(sleuth, "sleuth")) {
+    sleuth.obj <- sleuth
+    rm(sleuth)
+  } else if (is.character(sleuth)) {
+    message("loading sleuth results object")
+    sleuth.obj <- try(sleuth::sleuth_load(sleuth))
+    if (is(sleuth.obj, "try-error")) {
+      stop("The sleuth object could not be loaded. Here is the error message: ",
+           print(sleuth.obj))
+    }
+  } else {
+    stop("'sleuth' is of an unrecognized class: ", print(class(sleuth)))
   }
 
   tpms <- sleuth::sleuth_to_matrix(sleuth.obj, "obs_raw", "tpm")
